@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useAuthUser } from "../../features/auth/hooks";
+import { env } from "../../lib/env";
 import { useLocale } from "../../lib/locale";
 
 type AppShellProps = {
@@ -13,6 +14,8 @@ export function AppShell({ title, subtitle, action, children }: AppShellProps) {
   const { locale, setLocale } = useLocale();
   const { data: viewer } = useAuthUser();
   const pathname = typeof window === "undefined" ? "/" : window.location.pathname;
+  const adminHref = env.adminBaseUrl.replace(/\/$/, "") || "/";
+  const isAdminViewer = viewer?.role === "ADMIN" || viewer?.role === "SUPER_ADMIN";
   const navItems = [
     { href: "/", label: locale === "zh" ? "首页" : "Home" },
     { href: "/problems", label: locale === "zh" ? "题库" : "Problems" },
@@ -52,6 +55,14 @@ export function AppShell({ title, subtitle, action, children }: AppShellProps) {
             </nav>
           </div>
           <div className="flex items-center gap-2.5">
+            {isAdminViewer ? (
+              <a
+                className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-800 hover:bg-amber-100"
+                href={adminHref}
+              >
+                {locale === "zh" ? "管理端" : "Admin Console"}
+              </a>
+            ) : null}
             <a
               className="rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:text-slate-950"
               href={viewer ? "/me" : "/login"}

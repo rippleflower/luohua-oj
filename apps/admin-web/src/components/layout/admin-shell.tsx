@@ -67,7 +67,8 @@ export function AdminShell({ title, children }: AdminShellProps) {
   }
 
   const allowed = new Set(viewer.role === "SUPER_ADMIN" ? permissionKeys : viewer.permissions ?? []);
-  const previewHref = `${webBaseUrl}${previewPathFor(pathname)}`;
+  const previewPath = previewPathFor(pathname);
+  const previewHref = webBaseUrl === "" ? previewPath : `${webBaseUrl}${previewPath}`;
 
   return (
     <main className="min-h-screen text-slate-950">
@@ -100,10 +101,8 @@ export function AdminShell({ title, children }: AdminShellProps) {
               <a
                 className="rounded-full border border-orange-200 bg-orange-50 px-4 py-2 text-sm font-semibold text-orange-700 transition hover:bg-orange-100"
                 href={previewHref}
-                rel="noreferrer"
-                target="_blank"
               >
-                前台预览
+                前台
               </a>
               {viewer ? <div className="rounded-full border border-slate-200 px-4 py-2 text-sm text-slate-600">{viewer.role}</div> : null}
             </div>
