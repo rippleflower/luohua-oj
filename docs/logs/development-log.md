@@ -67,3 +67,46 @@
 - the app still uses mock contest data and does not yet consume a real contests backend
 - browser validation depended on the local Vite dev server staying alive; after Codex restarts the server must be started again with `pnpm dev:web`
 - there is still no shared density token layer for `button`, `badge`, `summary card`, and `side card`; pages currently reuse class patterns manually
+
+## 2026-05-24
+
+### Scope
+
+- consolidated the auth/admin/judge/submission foundation work onto reviewable branch history
+- created and updated draft PR `#1` from `codex/auth-admin-submission-foundation-split` to `main`
+- finished the user/admin cross-entry navigation and problem workspace rollout
+- fixed duplicate page actions in the web `AppShell`
+- split the web app by route-level lazy loading to remove the oversized main chunk warning
+
+### Decisions
+
+- keep the original integrated feature scope, but rebuild history into smaller commits instead of rewriting the feature set again
+- use `codex/auth-admin-submission-foundation-split` as the new review baseline
+- keep the PR in draft because it still spans schema, backend, worker, and frontend layers together
+- treat the current problem-page `compatUserId` path as an explicit temporary compatibility fallback
+- prefer route-level `lazy()` loading before adding custom Vite `manualChunks`
+
+### Validation
+
+- `pnpm test` passed on the rebuilt split branch
+- `pnpm --filter @oj/web build` passed after the route lazy-loading change
+- `pnpm --filter @oj/admin-web build` passed during PR self-check
+- `pnpm --filter @oj/web test` passed after the `AppShell` duplicate-action fix
+- draft PR created and updated:
+  - [PR #1](https://github.com/rippleflower/luohua-oj/pull/1)
+
+### Current Review Baseline
+
+- branch:
+  - `codex/auth-admin-submission-foundation-split`
+- latest commits:
+  - `35c1438` `perf(web): lazy-load route modules`
+  - `8542015` `fix(web): avoid duplicate app shell actions`
+  - `2043db0` `chore: ignore admin web tsbuildinfo`
+
+### Known Limits
+
+- the draft PR is still large in scope even after history cleanup; reviewer load is lower, but integration risk remains cross-layer
+- `apps/web` no longer triggers the `>500 kB` warning, but there is still no deliberate chunk-group strategy beyond route lazy loading
+- the problem workspace still exposes a compatibility user ID fallback because the user identity chain is not fully normalized yet
+- the next highest-risk area is not the shell UX anymore; it is backend/admin write-path completeness and PR review readiness
