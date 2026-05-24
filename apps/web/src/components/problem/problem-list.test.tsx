@@ -17,6 +17,7 @@ describe("ProblemList", () => {
               difficulty: "EASY",
               tags: ["array"],
               acceptedRate: 60,
+              status: "SOLVED",
             },
           ]}
         />
