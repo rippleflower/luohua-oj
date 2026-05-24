@@ -2,31 +2,57 @@ package source
 
 import (
 	"context"
-	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 type LocalStore struct {
-	Root string
+	Root  string
+	Clock func() time.Time
 }
 
-func (s LocalStore) PutSource(ctx context.Context, submissionID uuid.UUID, source string) (string, error) {
+func (s LocalStore) PutSource(ctx context.Context, submissionID uuid.UUID, language string, source string) (string, error) {
 	root := s.Root
 	if root == "" {
 		root = "tmp/submissions"
 	}
 
-	if err := os.MkdirAll(root, 0o755); err != nil {
+	objectKey := SubmissionSourceObjectKey(s.now(), submissionID, language)
+	path := filepath.Join(root, filepath.FromSlash(objectKey))
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return "", err
 	}
 
-	object := filepath.Join(root, fmt.Sprintf("%s.txt", submissionID.String()))
-	if err := os.WriteFile(object, []byte(source), 0o600); err != nil {
+	cmd := exec.CommandContext(ctx, "zstd", "-q", "--stdout")
+	cmd.Stdin = strings.NewReader(source)
+	compressed, err := cmd.Output()
+	if err != nil {
 		return "", err
 	}
 
-	return object, nil
+	if err := os.WriteFile(path, compressed, 0o600); err != nil {
+		return "", err
+	}
+
+	return objectKey, nil
+}
+
+func (s LocalStore) ResolvePath(objectKey string) string {
+	root := s.Root
+	if root == "" {
+		root = "tmp/submissions"
+	}
+	return filepath.Join(root, filepath.FromSlash(objectKey))
+}
+
+func (s LocalStore) now() time.Time {
+	if s.Clock != nil {
+		return s.Clock()
+	}
+	return time.Now().UTC()
 }
