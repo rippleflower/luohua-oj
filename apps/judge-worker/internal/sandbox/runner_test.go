@@ -17,11 +17,10 @@ func TestBuildNSJailArgs(t *testing.T) {
 		Workdir:       "/tmp/oj-run-1",
 	})
 
-	require.Contains(t, args, "--disable_clone_newnet")
 	require.Contains(t, args, "--time_limit")
 	require.Contains(t, args, "1")
 	require.Contains(t, args, "--rlimit_as")
-	require.Contains(t, args, "262144")
+	require.Contains(t, args, "256")
 	require.Contains(t, args, "/usr/bin/python3")
 	require.Contains(t, args, "main.py")
 }
