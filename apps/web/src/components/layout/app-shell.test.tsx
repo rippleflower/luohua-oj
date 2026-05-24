@@ -61,4 +61,33 @@ describe("AppShell", () => {
 
     expect(screen.queryByText("管理端")).not.toBeInTheDocument();
   });
+
+  it("renders the page action only once", () => {
+    vi.mocked(useAuthUser).mockReturnValue({
+      data: {
+        id: "admin-1",
+        email: "admin@example.com",
+        username: "admin",
+        role: "ADMIN",
+        permissions: [],
+        displayName: "Admin",
+      },
+    } as unknown as ReturnType<typeof useAuthUser>);
+
+    render(
+      <LocaleProvider>
+        <QueryClientProvider client={new QueryClient()}>
+          <AppShell
+            action={<a href="/problems">返回题库</a>}
+            subtitle="luooj"
+            title="题目详情"
+          >
+            <div>content</div>
+          </AppShell>
+        </QueryClientProvider>
+      </LocaleProvider>,
+    );
+
+    expect(screen.getAllByText("返回题库")).toHaveLength(1);
+  });
 });

@@ -79,7 +79,6 @@ export function AppShell({ title, subtitle, action, children }: AppShellProps) {
             <div className="hidden rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 font-mono text-[11px] text-slate-500 lg:block">
               {pathname}
             </div>
-            {action}
           </div>
         </div>
       </section>
