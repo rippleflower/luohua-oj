@@ -5,6 +5,7 @@ const auditReasonSchema = z.string().trim().max(280).default("");
 
 export const contestProblemSchema = z.object({
   code: z.string().min(1),
+  slug: z.string().min(1).optional(),
   title: z.string().min(1),
   difficulty: z.enum(["EASY", "MEDIUM", "HARD"]),
   status: z.enum(["LOCKED", "ATTEMPTED", "SOLVED"]),

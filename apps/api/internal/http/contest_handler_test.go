@@ -76,7 +76,7 @@ func TestGetContest(t *testing.T) {
 				{ID: "sub-1", ProblemCode: "A", Status: "ACCEPTED", At: "1 minute ago"},
 			},
 			Problems: []contest.ProblemSnapshot{
-				{Code: "A", Title: "Two Sum", Difficulty: "EASY", Status: "SOLVED"},
+				{Code: "A", Slug: "two-sum", Title: "Two Sum", Difficulty: "EASY", Status: "SOLVED"},
 			},
 			UpdatedAt: time.Date(2026, 5, 16, 11, 30, 0, 0, time.UTC),
 		},
@@ -90,5 +90,40 @@ func TestGetContest(t *testing.T) {
 	require.Equal(t, http.StatusOK, rec.Code)
 	require.Contains(t, rec.Body.String(), `"id":"`+contestID.String()+`"`)
 	require.Contains(t, rec.Body.String(), `"rankSummary":"Top 10%"`)
+	require.Contains(t, rec.Body.String(), `"slug":"two-sum"`)
 	require.Contains(t, rec.Body.String(), `"recentSubmissions":[{"id":"sub-1","problemCode":"A","status":"ACCEPTED","at":"1 minute ago"}]`)
+}
+
+func TestGetContestWithLegacyProblemSnapshot(t *testing.T) {
+	reader := &fakeContestReader{
+		detail: contest.Detail{
+			Summary: contest.Summary{
+				ID:               uuid.New(),
+				Slug:             "legacy-open",
+				Title:            "Legacy Open",
+				Status:           "ENDED",
+				StartsAt:         time.Date(2026, 5, 1, 11, 0, 0, 0, time.UTC),
+				EndsAt:           time.Date(2026, 5, 1, 13, 0, 0, 0, time.UTC),
+				DurationLabel:    "2 hours",
+				ProblemCount:     1,
+				ParticipantCount: 16,
+				Blurb:            "legacy",
+			},
+			RankSummary:       "Completed",
+			Remaining:         "比赛已结束",
+			RecentSubmissions: nil,
+			Problems: []contest.ProblemSnapshot{
+				{Code: "A", Title: "Legacy Problem", Difficulty: "EASY", Status: "LOCKED"},
+			},
+			UpdatedAt: time.Date(2026, 5, 1, 13, 0, 0, 0, time.UTC),
+		},
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/contests/legacy-open", nil)
+	rec := httptest.NewRecorder()
+
+	apphttp.NewRouter(apphttp.RouterOptions{ContestReader: reader}).ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Contains(t, rec.Body.String(), `"title":"Legacy Problem"`)
 }

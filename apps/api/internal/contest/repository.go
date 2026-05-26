@@ -433,6 +433,7 @@ func (r *SQLRepository) FreezeAdminContest(ctx context.Context, actor auth.Authe
 	for _, item := range problems {
 		publicProblems = append(publicProblems, ProblemSnapshot{
 			Code:       item.Code,
+			Slug:       item.ProblemSlug,
 			Title:      item.ProblemTitle,
 			Difficulty: item.Difficulty,
 			Status:     "LOCKED",

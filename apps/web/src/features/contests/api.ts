@@ -35,6 +35,7 @@ const contestSeed: ContestDetail[] = [
     problems: [
       {
         code: "A",
+        slug: "two-sum",
         title: "位窗口",
         difficulty: "EASY",
         status: "SOLVED",
@@ -42,6 +43,7 @@ const contestSeed: ContestDetail[] = [
       },
       {
         code: "B",
+        slug: "shortest-path",
         title: "地铁换乘",
         difficulty: "MEDIUM",
         status: "SOLVED",
@@ -49,6 +51,7 @@ const contestSeed: ContestDetail[] = [
       },
       {
         code: "C",
+        slug: "dynamic-ranking",
         title: "零知识路径",
         difficulty: "MEDIUM",
         status: "ATTEMPTED",
@@ -111,6 +114,7 @@ const contestSeed: ContestDetail[] = [
     problems: [
       {
         code: "A",
+        slug: "two-sum",
         title: "校验和",
         difficulty: "EASY",
         status: "SOLVED",
@@ -118,6 +122,7 @@ const contestSeed: ContestDetail[] = [
       },
       {
         code: "B",
+        slug: "shortest-path",
         title: "轨道",
         difficulty: "MEDIUM",
         status: "SOLVED",
@@ -125,6 +130,7 @@ const contestSeed: ContestDetail[] = [
       },
       {
         code: "C",
+        slug: "dynamic-ranking",
         title: "拆分合并",
         difficulty: "MEDIUM",
         status: "SOLVED",
@@ -145,7 +151,7 @@ export async function listContests(): Promise<ContestSummary[]> {
       const response = await getJSON<unknown>("/contests");
       return z.array(contestSummarySchema).parse(response);
     } catch {
-      // fall through to local seed while contests write paths are still being built
+      // Keep local seed fallback for demo mode when API is unreachable.
     }
   }
   return contestSeed.map((contest) => contestSummarySchema.parse(contest));
@@ -161,7 +167,7 @@ export async function getContest(
       );
       return contestDetailSchema.parse(response);
     } catch {
-      // fall through to local seed while contests write paths are still being built
+      // Keep local seed fallback for demo mode when API is unreachable.
     }
   }
   const found = contestSeed.find((contest) => contest.slug === slug);

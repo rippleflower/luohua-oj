@@ -34,6 +34,7 @@ type RecentSubmission struct {
 
 type ProblemSnapshot struct {
 	Code       string `json:"code"`
+	Slug       string `json:"slug,omitempty"`
 	Title      string `json:"title"`
 	Difficulty string `json:"difficulty"`
 	Status     string `json:"status"`
