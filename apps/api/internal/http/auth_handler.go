@@ -3,7 +3,6 @@ package http
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
@@ -31,14 +30,8 @@ type authHandlerOptions struct {
 
 func registerHandler(opts authHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var request struct {
-			Email           string `json:"email"`
-			Username        string `json:"username"`
-			Password        string `json:"password"`
-			ConfirmPassword string `json:"confirmPassword"`
-			DisplayName     string `json:"displayName"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		request, err := decodeAuthRegisterRequest(r)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid json body")
 			return
 		}
@@ -66,11 +59,8 @@ func registerHandler(opts authHandlerOptions) http.HandlerFunc {
 
 func loginHandler(opts authHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var request struct {
-			Identifier string `json:"identifier"`
-			Password   string `json:"password"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		request, err := decodeAuthLoginRequest(r)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid json body")
 			return
 		}
@@ -120,12 +110,8 @@ func changePasswordHandler(opts authHandlerOptions) http.HandlerFunc {
 			writeJSONError(w, http.StatusUnauthorized, "authentication required")
 			return
 		}
-		var request struct {
-			CurrentPassword string `json:"currentPassword"`
-			NewPassword     string `json:"newPassword"`
-			ConfirmPassword string `json:"confirmPassword"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		request, err := decodeAuthChangePasswordRequest(r)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid json body")
 			return
 		}
@@ -169,10 +155,8 @@ func revokeSessionHandler(opts authHandlerOptions) http.HandlerFunc {
 			writeJSONError(w, http.StatusUnauthorized, "authentication required")
 			return
 		}
-		var request struct {
-			SessionID string `json:"sessionId"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		request, err := decodeAuthRevokeSessionRequest(r)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid json body")
 			return
 		}
@@ -250,12 +234,8 @@ func meSettingsHandler(opts authHandlerOptions) http.HandlerFunc {
 func updateProfileHandler(opts authHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user, _ := currentUser(r.Context())
-		var request struct {
-			DisplayName string `json:"displayName"`
-			Bio         string `json:"bio"`
-			AvatarURL   string `json:"avatarUrl"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		request, err := decodeAuthUpdateProfileRequest(r)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid json body")
 			return
 		}
@@ -277,11 +257,8 @@ func updateProfileHandler(opts authHandlerOptions) http.HandlerFunc {
 func updatePreferencesHandler(opts authHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user, _ := currentUser(r.Context())
-		var request struct {
-			PreferredLocale   string `json:"preferredLocale"`
-			PreferredLanguage string `json:"preferredLanguage"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		request, err := decodeAuthUpdatePreferencesRequest(r)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid json body")
 			return
 		}
