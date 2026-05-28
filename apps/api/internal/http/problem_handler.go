@@ -1,36 +1,13 @@
 package http
 
 import (
-	"encoding/json"
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/example/oj3/apps/api/internal/problem"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
-
-type problemSummaryResponse struct {
-	ID           string   `json:"id"`
-	Slug         string   `json:"slug"`
-	Title        string   `json:"title"`
-	Difficulty   string   `json:"difficulty"`
-	Tags         []string `json:"tags"`
-	AcceptedRate float64  `json:"acceptedRate"`
-}
-
-type problemDetailResponse struct {
-	ID            string          `json:"id"`
-	Slug          string          `json:"slug"`
-	Title         string          `json:"title"`
-	Difficulty    string          `json:"difficulty"`
-	StatementJSON json.RawMessage `json:"statementJson"`
-	SamplesJSON   json.RawMessage `json:"samplesJson"`
-	LimitsJSON    json.RawMessage `json:"limitsJson"`
-	MetadataJSON  json.RawMessage `json:"metadataJson"`
-	UpdatedAt     string          `json:"updatedAt"`
-}
 
 func listProblemsHandler(reader problem.Reader, logger *slog.Logger) http.HandlerFunc {
 	if logger == nil {
@@ -49,14 +26,7 @@ func listProblemsHandler(reader problem.Reader, logger *slog.Logger) http.Handle
 
 		response := make([]problemSummaryResponse, 0, len(items))
 		for _, item := range items {
-			response = append(response, problemSummaryResponse{
-				ID:           item.ID.String(),
-				Slug:         item.Slug,
-				Title:        item.Title,
-				Difficulty:   item.Difficulty,
-				Tags:         item.Tags,
-				AcceptedRate: item.AcceptedRate,
-			})
+			response = append(response, mapProblemSummaryResponse(item))
 		}
 
 		if len(items) > 0 {
@@ -85,16 +55,28 @@ func getProblemHandler(reader problem.Reader, logger *slog.Logger) http.HandlerF
 
 		w.Header().Set("Last-Modified", item.UpdatedAt.UTC().Format(http.TimeFormat))
 		handlerLogger.InfoContext(r.Context(), "problem detail succeeded", "event", "problem.detail.succeeded", "requestId", requestID, "slug", slug)
-		writeJSON(w, http.StatusOK, problemDetailResponse{
-			ID:            item.ID.String(),
-			Slug:          item.Slug,
-			Title:         item.Title,
-			Difficulty:    item.Difficulty,
-			StatementJSON: item.StatementJSON,
-			SamplesJSON:   item.SamplesJSON,
-			LimitsJSON:    item.LimitsJSON,
-			MetadataJSON:  item.MetadataJSON,
-			UpdatedAt:     item.UpdatedAt.UTC().Format(time.RFC3339),
-		})
+		writeJSON(w, http.StatusOK, mapProblemDetailResponse(item))
+	}
+}
+
+func getProblemByRouteCodeHandler(reader problem.Reader, logger *slog.Logger) http.HandlerFunc {
+	if logger == nil {
+		logger = slog.Default()
+	}
+	handlerLogger := logger.With("component", "http.problems")
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		requestID := middleware.GetReqID(r.Context())
+		routeCode := chi.URLParam(r, "routeCode")
+		item, err := reader.GetByRouteCode(r.Context(), routeCode)
+		if err != nil {
+			handlerLogger.ErrorContext(r.Context(), "problem detail by code failed", "event", "problem.detail_by_code.failed", "requestId", requestID, "routeCode", routeCode, "error", err)
+			writeJSONError(w, http.StatusNotFound, "problem not found")
+			return
+		}
+
+		w.Header().Set("Last-Modified", item.UpdatedAt.UTC().Format(http.TimeFormat))
+		handlerLogger.InfoContext(r.Context(), "problem detail by code succeeded", "event", "problem.detail_by_code.succeeded", "requestId", requestID, "routeCode", routeCode)
+		writeJSON(w, http.StatusOK, mapProblemDetailResponse(item))
 	}
 }
