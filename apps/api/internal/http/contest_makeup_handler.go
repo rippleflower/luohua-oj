@@ -3,7 +3,6 @@ package http
 import (
 	"errors"
 	"net/http"
-	"time"
 
 	"github.com/example/oj3/apps/api/internal/contest_makeup"
 	"github.com/go-chi/chi/v5"
@@ -30,29 +29,6 @@ func contestMakeupListHandler(opts authHandlerOptions) http.HandlerFunc {
 			return
 		}
 
-		responseItems := make([]map[string]any, 0, len(list.Items))
-		for _, item := range list.Items {
-			response := map[string]any{
-				"problemId":       item.ProblemID.String(),
-				"problemCode":     item.ProblemCode,
-				"problemSlug":     item.ProblemSlug,
-				"problemTitle":    item.ProblemTitle,
-				"difficulty":      item.Difficulty,
-				"category":        item.Category,
-				"lastStatus":      item.LastStatus,
-				"severityRank":    item.SeverityRank,
-				"reasonSummary":   item.ReasonSummary,
-				"suggestedAction": item.SuggestedAction,
-			}
-			if item.AttemptCount > 0 {
-				response["attemptCount"] = item.AttemptCount
-			}
-			responseItems = append(responseItems, response)
-		}
-		writeJSON(w, http.StatusOK, map[string]any{
-			"contestSlug": list.ContestSlug,
-			"generatedAt": list.GeneratedAt.UTC().Format(time.RFC3339),
-			"items":       responseItems,
-		})
+		writeJSON(w, http.StatusOK, mapContestMakeupListResponse(list))
 	}
 }
