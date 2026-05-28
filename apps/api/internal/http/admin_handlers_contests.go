@@ -1,13 +1,9 @@
 package http
 
 import (
-	"encoding/json"
 	"net/http"
-	"time"
 
 	"github.com/example/oj3/apps/api/internal/contest"
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 )
 
 func adminContestsHandler(opts authHandlerOptions) http.HandlerFunc {
@@ -28,27 +24,14 @@ func adminContestsHandler(opts authHandlerOptions) http.HandlerFunc {
 func adminContestCreateHandler(opts authHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		actor, _ := currentUser(r.Context())
-		var request struct {
-			Slug        string `json:"slug"`
-			Title       string `json:"title"`
-			Description string `json:"description"`
-			Status      string `json:"status"`
-			StartsAt    string `json:"startsAt"`
-			EndsAt      string `json:"endsAt"`
-			Reason      string `json:"reason"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		request, err := decodeAdminContestUpsertRequest(r)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid json body")
 			return
 		}
-		startsAt, err := time.Parse(time.RFC3339, request.StartsAt)
+		startsAt, endsAt, err := parseAdminContestSchedule(request)
 		if err != nil {
-			writeJSONError(w, http.StatusBadRequest, "invalid startsAt")
-			return
-		}
-		endsAt, err := time.Parse(time.RFC3339, request.EndsAt)
-		if err != nil {
-			writeJSONError(w, http.StatusBadRequest, "invalid endsAt")
+			writeJSONError(w, http.StatusBadRequest, err.Error())
 			return
 		}
 		item, err := opts.contestAdmin.CreateAdmin(r.Context(), actor, contest.CreateAdminInput{
@@ -72,32 +55,19 @@ func adminContestCreateHandler(opts authHandlerOptions) http.HandlerFunc {
 func adminContestUpdateHandler(opts authHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		actor, _ := currentUser(r.Context())
-		contestID, err := uuid.Parse(chi.URLParam(r, "contestID"))
+		contestID, err := parseAdminContestID(r)
 		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid contest id")
 			return
 		}
-		var request struct {
-			Slug        string `json:"slug"`
-			Title       string `json:"title"`
-			Description string `json:"description"`
-			Status      string `json:"status"`
-			StartsAt    string `json:"startsAt"`
-			EndsAt      string `json:"endsAt"`
-			Reason      string `json:"reason"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		request, err := decodeAdminContestUpsertRequest(r)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid json body")
 			return
 		}
-		startsAt, err := time.Parse(time.RFC3339, request.StartsAt)
+		startsAt, endsAt, err := parseAdminContestSchedule(request)
 		if err != nil {
-			writeJSONError(w, http.StatusBadRequest, "invalid startsAt")
-			return
-		}
-		endsAt, err := time.Parse(time.RFC3339, request.EndsAt)
-		if err != nil {
-			writeJSONError(w, http.StatusBadRequest, "invalid endsAt")
+			writeJSONError(w, http.StatusBadRequest, err.Error())
 			return
 		}
 		item, err := opts.contestAdmin.UpdateAdmin(r.Context(), actor, contest.UpdateAdminInput{
@@ -122,35 +92,20 @@ func adminContestUpdateHandler(opts authHandlerOptions) http.HandlerFunc {
 func adminContestProblemsReplaceHandler(opts authHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		actor, _ := currentUser(r.Context())
-		contestID, err := uuid.Parse(chi.URLParam(r, "contestID"))
+		contestID, err := parseAdminContestID(r)
 		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid contest id")
 			return
 		}
-		var request struct {
-			Problems []struct {
-				ProblemID string `json:"problemId"`
-				Code      string `json:"code"`
-				Position  int    `json:"position"`
-			} `json:"problems"`
-			Reason string `json:"reason"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		request, err := decodeAdminContestProblemsReplaceRequest(r)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid json body")
 			return
 		}
-		problems := make([]contest.AdminProblemBindingInput, 0, len(request.Problems))
-		for _, item := range request.Problems {
-			problemID, err := uuid.Parse(item.ProblemID)
-			if err != nil {
-				writeJSONError(w, http.StatusBadRequest, "invalid problem id")
-				return
-			}
-			problems = append(problems, contest.AdminProblemBindingInput{
-				ProblemID: problemID,
-				Code:      item.Code,
-				Position:  item.Position,
-			})
+		problems, err := parseAdminContestProblemBindings(request)
+		if err != nil {
+			writeJSONError(w, http.StatusBadRequest, "invalid problem id")
+			return
 		}
 		item, err := opts.contestAdmin.ReplaceProblemsAdmin(r.Context(), actor, contest.ReplaceProblemsInput{
 			ContestID: contestID,
@@ -169,15 +124,13 @@ func adminContestProblemsReplaceHandler(opts authHandlerOptions) http.HandlerFun
 func adminContestFreezeHandler(opts authHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		actor, _ := currentUser(r.Context())
-		contestID, err := uuid.Parse(chi.URLParam(r, "contestID"))
+		contestID, err := parseAdminContestID(r)
 		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid contest id")
 			return
 		}
-		var request struct {
-			Reason string `json:"reason"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		request, err := decodeAdminReasonOnlyRequest(r)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid json body")
 			return
 		}

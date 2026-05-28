@@ -1,13 +1,10 @@
 package http
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
 
 	"github.com/example/oj3/apps/api/internal/submission"
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 )
 
 func adminSubmissionsHandler(opts authHandlerOptions) http.HandlerFunc {
@@ -46,15 +43,13 @@ func adminJudgeQueueHandler(opts authHandlerOptions) http.HandlerFunc {
 func adminSubmissionRejudgeHandler(opts authHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		actor, _ := currentUser(r.Context())
-		submissionID, err := uuid.Parse(chi.URLParam(r, "submissionID"))
+		submissionID, err := parseAdminSubmissionID(r)
 		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid submission id")
 			return
 		}
-		var request struct {
-			Reason string `json:"reason"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		request, err := decodeAdminReasonOnlyRequest(r)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid json body")
 			return
 		}

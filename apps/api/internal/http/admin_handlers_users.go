@@ -1,13 +1,10 @@
 package http
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
 
 	"github.com/example/oj3/apps/api/internal/auth"
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 )
 
 func adminUsersHandler(opts authHandlerOptions) http.HandlerFunc {
@@ -36,7 +33,7 @@ func adminUsersHandler(opts authHandlerOptions) http.HandlerFunc {
 
 func adminUserDetailHandler(opts authHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, err := uuid.Parse(chi.URLParam(r, "userID"))
+		userID, err := parseAdminUserID(r)
 		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid user id")
 			return
@@ -52,7 +49,7 @@ func adminUserDetailHandler(opts authHandlerOptions) http.HandlerFunc {
 
 func adminUserPermissionsHandler(opts authHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, err := uuid.Parse(chi.URLParam(r, "userID"))
+		userID, err := parseAdminUserID(r)
 		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid user id")
 			return
@@ -73,19 +70,13 @@ func adminUserPermissionsHandler(opts authHandlerOptions) http.HandlerFunc {
 func adminUserUpdateHandler(opts authHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		actor, _ := currentUser(r.Context())
-		userID, err := uuid.Parse(chi.URLParam(r, "userID"))
+		userID, err := parseAdminUserID(r)
 		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid user id")
 			return
 		}
-		var request struct {
-			Status      string `json:"status"`
-			DisplayName string `json:"displayName"`
-			Bio         string `json:"bio"`
-			AvatarURL   string `json:"avatarUrl"`
-			Reason      string `json:"reason"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		request, err := decodeAdminUserUpdateRequest(r)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid json body")
 			return
 		}
@@ -110,16 +101,13 @@ func adminUserUpdateHandler(opts authHandlerOptions) http.HandlerFunc {
 func adminUserRoleHandler(opts authHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		actor, _ := currentUser(r.Context())
-		userID, err := uuid.Parse(chi.URLParam(r, "userID"))
+		userID, err := parseAdminUserID(r)
 		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid user id")
 			return
 		}
-		var request struct {
-			Role   string `json:"role"`
-			Reason string `json:"reason"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		request, err := decodeAdminUserRoleRequest(r)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid json body")
 			return
 		}
@@ -134,16 +122,13 @@ func adminUserRoleHandler(opts authHandlerOptions) http.HandlerFunc {
 func adminUserPermissionsUpdateHandler(opts authHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		actor, _ := currentUser(r.Context())
-		userID, err := uuid.Parse(chi.URLParam(r, "userID"))
+		userID, err := parseAdminUserID(r)
 		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid user id")
 			return
 		}
-		var request struct {
-			Permissions []string `json:"permissions"`
-			Reason      string   `json:"reason"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		request, err := decodeAdminUserPermissionsUpdateRequest(r)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid json body")
 			return
 		}

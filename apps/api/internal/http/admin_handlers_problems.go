@@ -1,12 +1,9 @@
 package http
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/example/oj3/apps/api/internal/problem"
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 )
 
 func adminProblemsHandler(opts authHandlerOptions) http.HandlerFunc {
@@ -42,15 +39,8 @@ func adminProblemsHandler(opts authHandlerOptions) http.HandlerFunc {
 func adminProblemCreateHandler(opts authHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		actor, _ := currentUser(r.Context())
-		var request struct {
-			Slug          string `json:"slug"`
-			Title         string `json:"title"`
-			Difficulty    string `json:"difficulty"`
-			TimeLimitMs   int    `json:"timeLimitMs"`
-			MemoryLimitKb int    `json:"memoryLimitKb"`
-			Reason        string `json:"reason"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		request, err := decodeAdminProblemUpsertRequest(r)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid json body")
 			return
 		}
@@ -74,20 +64,13 @@ func adminProblemCreateHandler(opts authHandlerOptions) http.HandlerFunc {
 func adminProblemUpdateHandler(opts authHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		actor, _ := currentUser(r.Context())
-		problemID, err := uuid.Parse(chi.URLParam(r, "problemID"))
+		problemID, err := parseAdminProblemID(r)
 		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid problem id")
 			return
 		}
-		var request struct {
-			Slug          string `json:"slug"`
-			Title         string `json:"title"`
-			Difficulty    string `json:"difficulty"`
-			TimeLimitMs   int    `json:"timeLimitMs"`
-			MemoryLimitKb int    `json:"memoryLimitKb"`
-			Reason        string `json:"reason"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		request, err := decodeAdminProblemUpsertRequest(r)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid json body")
 			return
 		}
@@ -112,15 +95,13 @@ func adminProblemUpdateHandler(opts authHandlerOptions) http.HandlerFunc {
 func adminProblemPublishHandler(opts authHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		actor, _ := currentUser(r.Context())
-		problemID, err := uuid.Parse(chi.URLParam(r, "problemID"))
+		problemID, err := parseAdminProblemID(r)
 		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid problem id")
 			return
 		}
-		var request struct {
-			Reason string `json:"reason"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		request, err := decodeAdminReasonOnlyRequest(r)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid json body")
 			return
 		}

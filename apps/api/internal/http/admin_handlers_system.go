@@ -1,7 +1,6 @@
 package http
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
 
@@ -22,12 +21,8 @@ func adminSystemSettingsHandler(opts authHandlerOptions) http.HandlerFunc {
 func adminSystemSettingsUpdateHandler(opts authHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		actor, _ := currentUser(r.Context())
-		var request struct {
-			RegistrationEnabled bool   `json:"registrationEnabled"`
-			JudgeQueuePaused    bool   `json:"judgeQueuePaused"`
-			StorageMode         string `json:"storageMode"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		request, err := decodeAdminSystemSettingsUpdateRequest(r)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid json body")
 			return
 		}

@@ -1,11 +1,7 @@
 package http
 
 import (
-	"encoding/json"
 	"net/http"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 )
 
 func adminAnnouncementsHandler(opts authHandlerOptions) http.HandlerFunc {
@@ -26,13 +22,8 @@ func adminAnnouncementsHandler(opts authHandlerOptions) http.HandlerFunc {
 func adminAnnouncementCreateHandler(opts authHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		actor, _ := currentUser(r.Context())
-		var request struct {
-			Title    string `json:"title"`
-			Content  string `json:"content"`
-			Status   string `json:"status"`
-			Audience string `json:"audience"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		request, err := decodeAdminAnnouncementUpsertRequest(r)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid json body")
 			return
 		}
@@ -48,18 +39,13 @@ func adminAnnouncementCreateHandler(opts authHandlerOptions) http.HandlerFunc {
 func adminAnnouncementUpdateHandler(opts authHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		actor, _ := currentUser(r.Context())
-		announcementID, err := uuid.Parse(chi.URLParam(r, "announcementID"))
+		announcementID, err := parseAdminAnnouncementID(r)
 		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid announcement id")
 			return
 		}
-		var request struct {
-			Title    string `json:"title"`
-			Content  string `json:"content"`
-			Status   string `json:"status"`
-			Audience string `json:"audience"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		request, err := decodeAdminAnnouncementUpsertRequest(r)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid json body")
 			return
 		}
