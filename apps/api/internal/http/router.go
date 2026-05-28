@@ -44,7 +44,7 @@ func NewRouter(options ...RouterOptions) http.Handler {
 
 	r.Get("/health", healthHandler)
 	if opts.AuthService != nil {
-		mountAuthRoutes(r, authHandlerOptions{
+		authOpts := authHandlerOptions{
 			service:           opts.AuthService,
 			sessionCookieName: opts.SessionCookieName,
 			cookieSecure:      opts.CookieSecure,
@@ -55,31 +55,10 @@ func NewRouter(options ...RouterOptions) http.Handler {
 			submissionAdmin:   opts.SubmissionAdmin,
 			contestMakeup:     opts.ContestMakeup,
 			problemRouteCodec: problem.NewRouteCodec(opts.ProblemRouteSalt),
-		})
-		mountAdminRoutes(r, authHandlerOptions{
-			service:           opts.AuthService,
-			sessionCookieName: opts.SessionCookieName,
-			cookieSecure:      opts.CookieSecure,
-			sourceRoot:        opts.SourceRoot,
-			redisAddr:         opts.RedisAddr,
-			problemAdmin:      opts.ProblemAdmin,
-			contestAdmin:      opts.ContestAdmin,
-			submissionAdmin:   opts.SubmissionAdmin,
-			contestMakeup:     opts.ContestMakeup,
-			problemRouteCodec: problem.NewRouteCodec(opts.ProblemRouteSalt),
-		})
-		mountContestMakeupRoutes(r, authHandlerOptions{
-			service:           opts.AuthService,
-			sessionCookieName: opts.SessionCookieName,
-			cookieSecure:      opts.CookieSecure,
-			sourceRoot:        opts.SourceRoot,
-			redisAddr:         opts.RedisAddr,
-			problemAdmin:      opts.ProblemAdmin,
-			contestAdmin:      opts.ContestAdmin,
-			submissionAdmin:   opts.SubmissionAdmin,
-			contestMakeup:     opts.ContestMakeup,
-			problemRouteCodec: problem.NewRouteCodec(opts.ProblemRouteSalt),
-		})
+		}
+		mountAuthRoutes(r, authOpts)
+		mountAdminRoutes(r, authOpts)
+		mountContestMakeupRoutes(r, authOpts)
 	}
 	if opts.ProblemReader != nil {
 		mountProblemRoutes(r, opts.ProblemReader, opts.Logger)
