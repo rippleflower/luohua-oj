@@ -1,4 +1,4 @@
-import type { ProblemSummary } from "@oj/shared";
+import { webRoutes, type ProblemSummary } from "@oj/shared";
 import { useLocale } from "../../lib/locale";
 import type { ProblemRow } from "../../features/problems/workspace";
 
@@ -55,9 +55,11 @@ export function ProblemList({ problems, emptyMessage, onTagClick }: ProblemListP
           {problems.map((problem) => (
             <tr key={problem.id} className="hover:bg-slate-50/80">
               <td className="px-4 py-4 text-slate-950">
-                <a className="block" href={`/problems/${problem.slug}`}>
+                <a className="block" href={webRoutes.problemDetail(problem.routeCode)}>
                   <div className="font-semibold">{problem.title}</div>
-                  <div className="mt-1 font-mono text-[11px] uppercase tracking-[0.18em] text-slate-400">{problem.slug}</div>
+                  <div className="mt-1 font-mono text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                    #{problem.problemNo} · {problem.slug}
+                  </div>
                 </a>
               </td>
               <td className="px-4 py-4">

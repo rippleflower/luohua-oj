@@ -1,10 +1,16 @@
 import { lazy, Suspense } from "react";
+import { normalizePathname } from "@oj/shared";
+
+import { matchWebRoute } from "./lib/routes";
 
 const LoginRoute = lazy(async () => ({
   default: (await import("./routes/auth/login")).LoginRoute,
 }));
 const RegisterRoute = lazy(async () => ({
   default: (await import("./routes/auth/register")).RegisterRoute,
+}));
+const ContestMakeupRoute = lazy(async () => ({
+  default: (await import("./routes/contests/makeup")).ContestMakeupRoute,
 }));
 const ContestDetailRoute = lazy(async () => ({
   default: (await import("./routes/contests/detail")).ContestDetailRoute,
@@ -51,62 +57,43 @@ function RouteFallback() {
 }
 
 export function App() {
-  const pathname = window.location.pathname.replace(/\/$/, "") || "/";
+  const pathname = normalizePathname(window.location.pathname);
 
   return <Suspense fallback={<RouteFallback />}>{resolveRoute(pathname)}</Suspense>;
 }
 
 function resolveRoute(pathname: string) {
-  if (pathname.startsWith("/contests/")) {
-    const slug = pathname.slice("/contests/".length);
-    return <ContestDetailRoute slug={slug} />;
-  }
+  const match = matchWebRoute(pathname);
 
-  if (pathname.startsWith("/submissions/")) {
-    const submissionId = pathname.slice("/submissions/".length);
-    return <SubmissionDetailRoute submissionId={submissionId} />;
+  switch (match.kind) {
+    case "contest-makeup":
+      return <ContestMakeupRoute slug={match.slug} />;
+    case "contest-detail":
+      return <ContestDetailRoute slug={match.slug} />;
+    case "submission-detail":
+      return <SubmissionDetailRoute submissionId={match.submissionId} />;
+    case "problem-detail":
+      return <ProblemDetailRoute routeCode={match.routeCode} slug={match.slug} />;
+    case "login":
+      return <LoginRoute />;
+    case "register":
+      return <RegisterRoute />;
+    case "me":
+      return <MeRoute />;
+    case "settings-profile":
+      return <ProfileSettingsRoute />;
+    case "settings-account":
+      return <AccountSettingsRoute />;
+    case "settings-security":
+      return <SecuritySettingsRoute />;
+    case "contests":
+      return <ContestsRoute />;
+    case "submissions":
+      return <SubmissionsRoute />;
+    case "problems":
+      return <ProblemsRoute />;
+    case "home":
+    default:
+      return <HomeRoute />;
   }
-
-  if (pathname.startsWith("/problems/")) {
-    const slug = pathname.slice("/problems/".length);
-    return <ProblemDetailRoute slug={slug} />;
-  }
-
-  if (pathname === "/login") {
-    return <LoginRoute />;
-  }
-
-  if (pathname === "/register") {
-    return <RegisterRoute />;
-  }
-
-  if (pathname === "/me") {
-    return <MeRoute />;
-  }
-
-  if (pathname === "/settings/profile") {
-    return <ProfileSettingsRoute />;
-  }
-
-  if (pathname === "/settings/account") {
-    return <AccountSettingsRoute />;
-  }
-
-  if (pathname === "/settings/security") {
-    return <SecuritySettingsRoute />;
-  }
-
-  if (pathname === "/contests") {
-    return <ContestsRoute />;
-  }
-
-  if (pathname === "/submissions") {
-    return <SubmissionsRoute />;
-  }
-
-  if (pathname === "/problems") {
-    return <ProblemsRoute />;
-  }
-
-  return <HomeRoute />;
 }

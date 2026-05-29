@@ -6,6 +6,15 @@ import { LocaleProvider } from "../../lib/locale";
 import { resetLogTransport, setLogTransport } from "../../lib/logger";
 import { SubmissionsRoute } from "./index";
 
+vi.mock("../../lib/env", () => ({
+  env: {
+    apiBaseUrl: "",
+    adminBaseUrl: "",
+    submissionsUsername: "",
+    demoMode: true,
+  },
+}));
+
 describe("SubmissionsRoute", () => {
   const events: Record<string, unknown>[] = [];
 

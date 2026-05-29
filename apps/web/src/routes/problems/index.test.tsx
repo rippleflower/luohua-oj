@@ -1,9 +1,18 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { LocaleProvider } from "../../lib/locale";
 import { ProblemsRoute } from ".";
+
+vi.mock("../../lib/env", () => ({
+  env: {
+    apiBaseUrl: "",
+    adminBaseUrl: "",
+    submissionsUsername: "",
+    demoMode: true,
+  },
+}));
 
 describe("ProblemsRoute", () => {
   it("filters problems by search, difficulty, status, and tag", async () => {

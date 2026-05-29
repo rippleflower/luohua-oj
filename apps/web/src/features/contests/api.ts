@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { env } from "../../lib/env";
-import { getJSON } from "../../lib/http-client";
+import { ApiError, getJSON } from "../../lib/http-client";
 import {
   contestDetailSchema,
   contestSummarySchema,
@@ -151,8 +151,12 @@ export async function listContests(): Promise<ContestSummary[]> {
       const response = await getJSON<unknown>("/contests");
       return z.array(contestSummarySchema).parse(response);
     } catch {
-      // Keep local seed fallback for demo mode when API is unreachable.
+      if (!env.demoMode) {
+        throw missingContestApiError();
+      }
     }
+  } else if (!env.demoMode) {
+    throw missingContestApiError();
   }
   return contestSeed.map((contest) => contestSummarySchema.parse(contest));
 }
@@ -167,9 +171,22 @@ export async function getContest(
       );
       return contestDetailSchema.parse(response);
     } catch {
-      // Keep local seed fallback for demo mode when API is unreachable.
+      if (!env.demoMode) {
+        throw missingContestApiError();
+      }
     }
+  } else if (!env.demoMode) {
+    throw missingContestApiError();
   }
   const found = contestSeed.find((contest) => contest.slug === slug);
   return found ? contestDetailSchema.parse(found) : undefined;
+}
+
+function missingContestApiError() {
+  return new ApiError(
+    env.apiBaseUrl === ""
+      ? "contest api is unavailable because VITE_API_BASE_URL is empty and VITE_DEMO_MODE is false"
+      : "contest api request failed and VITE_DEMO_MODE is false",
+    503,
+  );
 }

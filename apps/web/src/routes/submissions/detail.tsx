@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import { webRoutes } from "@oj/shared";
 
 import { AppShell } from "../../components/layout/app-shell";
 import { SubmissionStatusBadge } from "../../components/submission/submission-status-badge";
 import { SubmissionResponsePanel } from "../../components/submission/submission-response-panel";
 import { listSubmissionHistory } from "../../features/submissions/history";
-import { getSubmission } from "../../features/submissions/read";
-import type { SubmissionDetail } from "../../features/submissions/schema";
+import { useSubmissionDetail } from "../../features/submissions/hooks";
 import { useLocale } from "../../lib/locale";
 
 type SubmissionDetailRouteProps = {
@@ -16,38 +15,32 @@ export function SubmissionDetailRoute({
   submissionId,
 }: SubmissionDetailRouteProps) {
   const { locale } = useLocale();
-  const [submission, setSubmission] = useState<SubmissionDetail | undefined>();
+  const { data: submission, error, isError } = useSubmissionDetail(submissionId);
   const recentSubmissions = listSubmissionHistory()
     .filter((item) => item.id !== submissionId)
     .slice(0, 5);
   const problemTitle = submission?.problem?.title ?? submission?.problemId;
   const problemSlug = submission?.problem?.slug;
 
-  useEffect(() => {
-    let cancelled = false;
-
-    void getSubmission(submissionId).then((next) => {
-      if (!cancelled) {
-        setSubmission(next);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [submissionId]);
-
   return (
     <AppShell
       title={locale === "zh" ? "提交详情" : "Submission Detail"}
       subtitle="luooj"
       action={
-        <a
-          className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          href="/submissions"
-        >
-          {locale === "zh" ? "返回提交列表" : "Back to Submissions"}
-        </a>
+        <div className="flex flex-wrap gap-2">
+          <a
+            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            href={webRoutes.submissions}
+          >
+            {locale === "zh" ? "返回提交列表" : "Back to Submissions"}
+          </a>
+          <a
+            className="rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            href={webRoutes.problems}
+          >
+            {locale === "zh" ? "继续刷题" : "Continue Practice"}
+          </a>
+        </div>
       }
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
@@ -55,7 +48,13 @@ export function SubmissionDetailRoute({
           <SubmissionResponsePanel
             data={submission}
             errorMessage={
-              submission
+              isError
+                ? error instanceof Error
+                  ? error.message
+                  : locale === "zh"
+                    ? "提交详情加载失败。"
+                    : "Failed to load submission detail."
+                : submission
                 ? undefined
                 : locale === "zh"
                   ? `本地记录里没有找到提交 ${submissionId}。`
@@ -151,7 +150,7 @@ export function SubmissionDetailRoute({
                   <li key={item.id}>
                     <a
                       className="block rounded-md border border-slate-200 px-3 py-2 hover:bg-slate-50"
-                      href={`/submissions/${item.id}`}
+                      href={webRoutes.submissionDetail(item.id)}
                     >
                       <div className="font-medium text-slate-900">
                         {item.problem?.title ?? item.problemId}

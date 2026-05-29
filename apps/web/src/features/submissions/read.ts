@@ -1,5 +1,5 @@
 import { env } from "../../lib/env";
-import { getJSON } from "../../lib/http-client";
+import { ApiError, getJSON } from "../../lib/http-client";
 import { getSubmissionHistoryItem, listSubmissionHistory } from "./history";
 import {
   submissionDetailSchema,
@@ -14,6 +14,13 @@ export async function getSubmission(
   if (env.apiBaseUrl !== "") {
     const response = await getJSON<unknown>(`/submissions/${submissionId}`);
     return submissionDetailSchema.parse(response);
+  }
+
+  if (!env.demoMode) {
+    throw new ApiError(
+      "submission detail api is unavailable because VITE_API_BASE_URL is empty and VITE_DEMO_MODE is false",
+      503,
+    );
   }
 
   const fallback = getSubmissionHistoryItem(submissionId);
@@ -52,6 +59,13 @@ export async function listSubmissions(
       `/users/${encodeURIComponent(normalized)}/submissions?page=${page}&pageSize=${pageSize}`,
     );
     return submissionListSchema.parse(response);
+  }
+
+  if (!env.demoMode) {
+    throw new ApiError(
+      "submission history api is unavailable because demo fallback is disabled",
+      503,
+    );
   }
 
   const items = listSubmissionHistory();

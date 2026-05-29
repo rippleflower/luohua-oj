@@ -1,12 +1,12 @@
 import Editor from "@monaco-editor/react";
-import { languages, type Language } from "@oj/shared";
+import { languages, type Language, webRoutes } from "@oj/shared";
 import { useEffect, useState } from "react";
 
 import { AppShell } from "../../components/layout/app-shell";
 import { ProblemMarkdown } from "../../components/problem/problem-markdown";
 import { SubmissionResponsePanel } from "../../components/submission/submission-response-panel";
 import { useAuthUser } from "../../features/auth/hooks";
-import { useProblem } from "../../features/problems/hooks";
+import { useProblem, useProblemByRouteCode } from "../../features/problems/hooks";
 import {
   defaultSourceForLanguage,
   deriveProblemTags,
@@ -16,6 +16,7 @@ import {
   type EditorPreferences,
 } from "../../features/problems/workspace";
 import { useCreateSubmission } from "../../features/submissions/hooks";
+import { env } from "../../lib/env";
 import { useLocale } from "../../lib/locale";
 
 const sectionLabel: Record<string, { zh: string; en: string }> = {
@@ -25,9 +26,12 @@ const sectionLabel: Record<string, { zh: string; en: string }> = {
   constraints: { zh: "说明与约束", en: "Notes & Constraints" },
 };
 
-export function ProblemDetailRoute({ slug }: { slug: string }) {
+export function ProblemDetailRoute({ routeCode, slug }: { routeCode?: string; slug?: string }) {
   const { locale } = useLocale();
-  const { data: problem } = useProblem(slug);
+  const problemByRouteCode = useProblemByRouteCode(routeCode ?? "");
+  const problemBySlug = useProblem(slug ?? "");
+  const problemQuery = routeCode ? problemByRouteCode : problemBySlug;
+  const problem = problemQuery.data;
   const { data: viewer } = useAuthUser();
   const mutation = useCreateSubmission();
   const [language, setLanguage] = useState<Language>("CPP17");
@@ -49,9 +53,20 @@ export function ProblemDetailRoute({ slug }: { slug: string }) {
     }
   }, [compatUserId, viewer?.id]);
 
-  const currentUserId = viewer?.id ?? compatUserId.trim();
+  useEffect(() => {
+    if (!routeCode && slug && problem?.routeCode) {
+      const search = typeof window === "undefined" ? "" : window.location.search;
+      window.history.replaceState({}, "", `${webRoutes.problemDetail(problem.routeCode)}${search}`);
+    }
+  }, [problem?.routeCode, routeCode, slug]);
+
+  const currentUserId = viewer?.id ?? (env.demoMode ? compatUserId.trim() : "");
   const currentTemplate = defaultSourceForLanguage(language);
   const problemTags = problem ? deriveProblemTags(problem) : [];
+  const fromMakeupSlug =
+    typeof window === "undefined"
+      ? ""
+      : new URLSearchParams(window.location.search).get("fromMakeup") ?? "";
 
   function handleLanguageChange(nextLanguage: Language) {
     const nextTemplate = defaultSourceForLanguage(nextLanguage);
@@ -66,8 +81,12 @@ export function ProblemDetailRoute({ slug }: { slug: string }) {
     if (currentUserId === "") {
       setValidationError(
         locale === "zh"
-          ? "当前环境还没有用户身份，请先登录或填写兼容用户 ID。"
-          : "No user identity is available yet. Log in or provide a compatibility user ID.",
+          ? env.demoMode
+            ? "当前环境还没有用户身份，请先登录或填写兼容用户 ID。"
+            : "当前环境还没有用户身份，请先登录后再提交。"
+          : env.demoMode
+            ? "No user identity is available yet. Log in or provide a compatibility user ID."
+            : "No user identity is available yet. Log in before submitting.",
       );
       return;
     }
@@ -90,22 +109,38 @@ export function ProblemDetailRoute({ slug }: { slug: string }) {
       subtitle="luooj"
       action={
         <div className="flex flex-wrap gap-3">
+          {fromMakeupSlug !== "" ? (
+            <a
+              className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:text-slate-950"
+              href={webRoutes.contestMakeup(fromMakeupSlug)}
+            >
+              {locale === "zh" ? "返回补题清单" : "Back to Makeup List"}
+            </a>
+          ) : null}
           <a
             className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:text-slate-950"
-            href="/problems"
+            href={webRoutes.problems}
           >
             {locale === "zh" ? "返回题库" : "Back to Problems"}
           </a>
           <a
             className="rounded-full bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
-            href="/submissions"
+            href={webRoutes.submissions}
           >
             {locale === "zh" ? "查看提交记录" : "Open Submission History"}
           </a>
         </div>
       }
     >
-      {!problem ? (
+      {problemQuery.isError ? (
+        <div className="rounded-3xl border border-rose-200 bg-rose-50 p-8 text-sm text-rose-700">
+          {problemQuery.error instanceof Error
+            ? problemQuery.error.message
+            : locale === "zh"
+              ? "题目加载失败。"
+              : "Failed to load problem."}
+        </div>
+      ) : !problem ? (
         <div className="rounded-3xl border border-dashed border-slate-200 bg-white/80 p-8 text-sm text-slate-500">
           {locale === "zh" ? "没有找到这道题。" : "Problem not found."}
         </div>
@@ -140,7 +175,7 @@ export function ProblemDetailRoute({ slug }: { slug: string }) {
                     <a
                       key={tag}
                       className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-950 hover:text-slate-950"
-                      href={`/problems?tag=${encodeURIComponent(tag)}`}
+                      href={`${webRoutes.problems}?tag=${encodeURIComponent(tag)}`}
                     >
                       #{tag}
                     </a>
@@ -173,31 +208,31 @@ export function ProblemDetailRoute({ slug }: { slug: string }) {
                   </p>
                   <h3 className="mt-1 text-lg font-semibold text-slate-950">
                     {locale === "zh"
-                      ? "公开样例目前仍使用对象键占位"
-                      : "Public samples still use object-key placeholders"}
+                      ? "公开样例"
+                      : "Public samples"}
                   </h3>
                 </div>
               </div>
               <div className="mt-4 grid gap-3 lg:grid-cols-2">
                 {problem.samplesJson.map((sample, index) => (
                   <div
-                    key={`${sample.inputObjectKey}-${index}`}
+                    key={`${problem.id}-sample-${index}`}
                     className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm"
                   >
                     <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
                       {locale === "zh" ? `样例 ${index + 1}` : `Sample ${index + 1}`}
                     </p>
                     <p className="mt-3 text-xs text-slate-500">
-                      {locale === "zh" ? "输入对象" : "Input Object"}
+                      {locale === "zh" ? "输入" : "Input"}
                     </p>
                     <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all rounded-xl bg-slate-950 px-3 py-2 text-xs text-slate-100">
-                      {sample.inputObjectKey}
+                      {sample.input}
                     </pre>
                     <p className="mt-3 text-xs text-slate-500">
-                      {locale === "zh" ? "输出对象" : "Output Object"}
+                      {locale === "zh" ? "输出" : "Output"}
                     </p>
                     <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all rounded-xl bg-slate-100 px-3 py-2 text-xs text-slate-700">
-                      {sample.outputObjectKey}
+                      {sample.output}
                     </pre>
                     <p className="mt-3 text-xs text-slate-500">
                       {locale === "zh" ? "权重" : "Weight"} {sample.weight}
@@ -335,13 +370,17 @@ export function ProblemDetailRoute({ slug }: { slug: string }) {
                       <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
                         {viewer.displayName} · {viewer.id}
                       </div>
-                    ) : (
+                    ) : env.demoMode ? (
                       <input
                         className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
                         onChange={(event) => setCompatUserId(event.target.value)}
                         placeholder={locale === "zh" ? "兼容模式用户 ID" : "Compatibility user ID"}
                         value={compatUserId}
                       />
+                    ) : (
+                      <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                        {locale === "zh" ? "请先登录后提交。" : "Log in before submitting."}
+                      </div>
                     )}
                   </label>
                   <label className="grid gap-2 text-sm font-medium text-slate-700">
@@ -384,8 +423,12 @@ export function ProblemDetailRoute({ slug }: { slug: string }) {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="text-xs text-slate-500">
                     {locale === "zh"
-                      ? "题目 ID 已自动绑定；当前仍兼容未完全打通的用户身份链路。"
-                      : "Problem ID is injected automatically; user identity still supports compatibility fallback."}
+                      ? env.demoMode
+                        ? "题目 ID 已自动绑定；demo 模式下仍允许兼容用户 ID。"
+                        : "题目 ID 已自动绑定；提交需要真实登录身份。"
+                      : env.demoMode
+                        ? "Problem ID is injected automatically; demo mode still allows a compatibility user ID."
+                        : "Problem ID is injected automatically; submission requires a real signed-in user."}
                   </div>
                   <button
                     className="rounded-full bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:bg-slate-400"

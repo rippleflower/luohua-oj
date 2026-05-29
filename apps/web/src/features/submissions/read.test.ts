@@ -1,4 +1,13 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("../../lib/env", () => ({
+  env: {
+    apiBaseUrl: "",
+    adminBaseUrl: "",
+    submissionsUsername: "",
+    demoMode: true,
+  },
+}));
 
 import { recordSubmissionHistory } from "./history";
 import { getSubmission, listSubmissions } from "./read";
@@ -37,6 +46,25 @@ describe("getSubmission", () => {
       items: [expect.objectContaining({ id: "sub-2" })],
       total: 1,
       page: 1,
+    });
+  });
+
+  it("throws a clear error when demo fallback is disabled", async () => {
+    vi.resetModules();
+    vi.doMock("../../lib/env", () => ({
+      env: {
+        apiBaseUrl: "",
+        adminBaseUrl: "",
+        submissionsUsername: "",
+        demoMode: false,
+      },
+    }));
+
+    const { getSubmission: getSubmissionWithRealMode } = await import("./read");
+
+    await expect(getSubmissionWithRealMode("sub-1")).rejects.toMatchObject({
+      status: 503,
+      message: expect.stringContaining("VITE_DEMO_MODE is false"),
     });
   });
 });

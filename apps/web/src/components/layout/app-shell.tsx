@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { webRoutes, webSectionForPath } from "@oj/shared";
 import { useAuthUser } from "../../features/auth/hooks";
 import { env } from "../../lib/env";
 import { useLocale } from "../../lib/locale";
@@ -14,13 +15,15 @@ export function AppShell({ title, subtitle, action, children }: AppShellProps) {
   const { locale, setLocale } = useLocale();
   const { data: viewer } = useAuthUser();
   const pathname = typeof window === "undefined" ? "/" : window.location.pathname;
+  const activeSection = webSectionForPath(pathname);
   const adminHref = env.adminBaseUrl.replace(/\/$/, "") || "/";
   const isAdminViewer = viewer?.role === "ADMIN" || viewer?.role === "SUPER_ADMIN";
   const navItems = [
-    { href: "/", label: locale === "zh" ? "首页" : "Home" },
-    { href: "/problems", label: locale === "zh" ? "题库" : "Problems" },
-    { href: "/contests", label: locale === "zh" ? "比赛" : "Contests" },
-    { href: "/submissions", label: locale === "zh" ? "提交" : "Submissions" },
+    { href: webRoutes.home, section: "home", label: locale === "zh" ? "首页" : "Home" },
+    { href: webRoutes.problems, section: "problems", label: locale === "zh" ? "题库" : "Problems" },
+    { href: webRoutes.contests, section: "contests", label: locale === "zh" ? "比赛" : "Contests" },
+    { href: webRoutes.submissions, section: "submissions", label: locale === "zh" ? "提交" : "Submissions" },
+    { href: webRoutes.me, section: "me", label: locale === "zh" ? "我的" : "Me" },
   ];
 
   return (
@@ -28,7 +31,7 @@ export function AppShell({ title, subtitle, action, children }: AppShellProps) {
       <section className="border-b border-slate-200/70 bg-white/70 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-3.5">
           <div className="flex items-center gap-6">
-            <a className="flex items-center gap-2.5" href="/">
+            <a className="flex items-center gap-2.5" href={webRoutes.home}>
               <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-900/10 bg-slate-950 font-mono text-sm text-white">
                 lu
               </span>
@@ -39,7 +42,7 @@ export function AppShell({ title, subtitle, action, children }: AppShellProps) {
             </a>
             <nav className="hidden items-center gap-1.5 md:flex">
               {navItems.map((item) => {
-                const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+                const active = activeSection === item.section;
                 return (
                   <a
                     key={item.href}
@@ -65,7 +68,7 @@ export function AppShell({ title, subtitle, action, children }: AppShellProps) {
             ) : null}
             <a
               className="rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:text-slate-950"
-              href={viewer ? "/me" : "/login"}
+              href={viewer ? webRoutes.me : webRoutes.login}
             >
               {viewer ? viewer.displayName : locale === "zh" ? "登录" : "Log In"}
             </a>

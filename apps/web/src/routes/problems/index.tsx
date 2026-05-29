@@ -15,7 +15,7 @@ import { useLocale } from "../../lib/locale";
 
 export function ProblemsRoute() {
   const { locale } = useLocale();
-  const { data: problems = [] } = useProblems();
+  const { data: problems = [], error, isError } = useProblems();
   const [filters, setFilters] = useState<ProblemFilterState>(defaultProblemFilterState);
   const enrichedProblems = createProblemRows(problems);
   const problemTags = collectProblemTags(problems);
@@ -118,6 +118,15 @@ export function ProblemsRoute() {
         </aside>
 
         <section className="space-y-4">
+          {isError ? (
+            <div className="rounded-3xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">
+              {error instanceof Error
+                ? error.message
+                : locale === "zh"
+                  ? "题库加载失败。"
+                  : "Failed to load problems."}
+            </div>
+          ) : null}
           <div className="rounded-3xl border border-slate-200/80 bg-white/85 p-4.5">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>

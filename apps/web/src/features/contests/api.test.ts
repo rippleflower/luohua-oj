@@ -7,12 +7,19 @@ vi.mock("../../lib/env", () => ({
     apiBaseUrl: "http://localhost:8080",
     adminBaseUrl: "",
     submissionsUsername: "",
+    demoMode: true,
   },
 }));
 
-vi.mock("../../lib/http-client", () => ({
-  getJSON: mockedGetJSON,
-}));
+vi.mock("../../lib/http-client", async () => {
+  const actual = await vi.importActual<typeof import("../../lib/http-client")>(
+    "../../lib/http-client",
+  );
+  return {
+    ...actual,
+    getJSON: mockedGetJSON,
+  };
+});
 
 import { getContest, listContests } from "./api";
 
@@ -88,5 +95,24 @@ describe("contests api", () => {
     expect(contest).toBeDefined();
     expect(contest?.problems[0].slug).toBeUndefined();
     expect(contest?.problems[0].title).toBe("Legacy Problem");
+  });
+
+  it("throws a clear error when demo fallback is disabled", async () => {
+    vi.resetModules();
+    vi.doMock("../../lib/env", () => ({
+      env: {
+        apiBaseUrl: "",
+        adminBaseUrl: "",
+        submissionsUsername: "",
+        demoMode: false,
+      },
+    }));
+
+    const { getContest: getContestWithRealMode } = await import("./api");
+
+    await expect(getContestWithRealMode("spring-open")).rejects.toMatchObject({
+      status: 503,
+      message: expect.stringContaining("VITE_DEMO_MODE is false"),
+    });
   });
 });
