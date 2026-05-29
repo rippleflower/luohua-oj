@@ -11,7 +11,18 @@ export function AuditRoute() {
   });
 
   return (
-    <AdminShell title="审计日志">
+    <AdminShell
+      title="审计日志"
+      sidebar={
+        <section className="rounded-3xl border border-slate-200 bg-white p-5">
+          <h2 className="text-lg font-semibold">审计上下文</h2>
+          <div className="mt-4 grid gap-2 text-sm text-slate-600">
+            <p>事件总数：{data.length}</p>
+            <p>最近记录：{data[0] ? new Date(data[0].createdAt).toLocaleString() : "-"}</p>
+          </div>
+        </section>
+      }
+    >
       <div className="grid gap-3">
         {data.map((event) => (
           <article key={event.id} className="rounded-3xl border border-slate-200 bg-white p-5">

@@ -1,4 +1,6 @@
 import type {
+  AdminProblemContentInput,
+  AdminProblemDetail,
   AdminContestCreateInput,
   AdminContestFreezeInput,
   AdminContestProblemBindingsInput,
@@ -23,7 +25,9 @@ import {
   adminContestCreateInputSchema,
   adminContestFreezeInputSchema,
   adminContestProblemBindingsInputSchema,
+  adminProblemContentInputSchema,
   adminProblemCreateInputSchema,
+  adminProblemDetailSchema,
   adminProblemPublishInputSchema,
   adminProblemUpdateInputSchema,
   adminContestUpdateInputSchema,
@@ -114,6 +118,23 @@ export async function updateProblem(
     body: adminProblemUpdateInputSchema.parse(input),
   });
   return adminProblemSummarySchema.parse(response);
+}
+
+export async function getProblemDetail(
+  problemId: string,
+): Promise<AdminProblemDetail> {
+  const response = await getJSON<unknown>(`/admin/problems/${problemId}`);
+  return adminProblemDetailSchema.parse(response);
+}
+
+export async function updateProblemContent(
+  problemId: string,
+  input: AdminProblemContentInput,
+): Promise<AdminProblemDetail> {
+  const response = await patchJSON<unknown>(`/admin/problems/${problemId}/content`, {
+    body: adminProblemContentInputSchema.parse(input),
+  });
+  return adminProblemDetailSchema.parse(response);
 }
 
 export async function publishProblem(

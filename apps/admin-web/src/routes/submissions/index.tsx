@@ -30,6 +30,11 @@ export function SubmissionsRoute() {
     queryKey: ["admin", "judge", "queue"],
     queryFn: getJudgeQueueSummary,
     retry: false,
+    refetchInterval: () =>
+      typeof document !== "undefined" && document.visibilityState === "visible"
+        ? 5_000
+        : false,
+    refetchIntervalInBackground: false,
   });
   const { data: viewer } = useQuery({
     queryKey: ["admin", "viewer"],
@@ -63,19 +68,30 @@ export function SubmissionsRoute() {
   const canRejudge = hasPermission(viewer, "submissions.rejudge");
 
   return (
-    <AdminShell title="提交与判题">
-      <div className="grid gap-4">
-        <div className="grid gap-3 md:grid-cols-3">
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-            队列摘要直接从 Asynq inspector 读取，前端不接触 Redis。
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-            重判前会清空旧结果并回到 `PENDING`，避免旧测试点结果污染。
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-            比赛提交重判优先沿用冻结时记录的 snapshot 版本元数据。
-          </div>
+    <AdminShell
+      title="提交与判题"
+      sidebar={
+        <div className="grid gap-4">
+          <section className="rounded-3xl border border-slate-200 bg-white p-5">
+            <h2 className="text-lg font-semibold">队列摘要</h2>
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-1">
+              <QueueMetric label="Pending" value={queueSummary?.pending ?? 0} />
+              <QueueMetric label="Active" value={queueSummary?.active ?? 0} />
+              <QueueMetric label="Retry" value={queueSummary?.retry ?? 0} />
+              <QueueMetric label="Processed Today" value={queueSummary?.processedToday ?? 0} />
+            </div>
+          </section>
+          <section className="rounded-3xl border border-slate-200 bg-white p-5 text-sm text-slate-600">
+            <div className="grid gap-3">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">队列摘要直接从 Asynq inspector 读取，前端不接触 Redis。</div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">重判前会清空旧结果并回到 `PENDING`，避免旧测试点结果污染。</div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">比赛提交重判优先沿用冻结时记录的 snapshot 版本元数据。</div>
+            </div>
+          </section>
         </div>
+      }
+    >
+      <div className="grid gap-4">
         {feedback ? (
           <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
             {feedback}
@@ -86,17 +102,6 @@ export function SubmissionsRoute() {
             {errorMessage}
           </div>
         ) : null}
-
-        <section className="grid gap-3 md:grid-cols-4">
-          <QueueMetric label="Pending" value={queueSummary?.pending ?? 0} />
-          <QueueMetric label="Active" value={queueSummary?.active ?? 0} />
-          <QueueMetric label="Retry" value={queueSummary?.retry ?? 0} />
-          <QueueMetric
-            label="Processed Today"
-            value={queueSummary?.processedToday ?? 0}
-          />
-        </section>
-
         <section className="rounded-[2rem] border border-slate-200 bg-white p-5">
           <div className="flex items-end justify-between gap-4">
             <div>
