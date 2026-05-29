@@ -269,13 +269,16 @@ func testDB(t *testing.T) (context.Context, *pgx.Conn) {
 	t.Cleanup(cancel)
 
 	conn, err := pgx.Connect(ctx, databaseURL)
-	require.NoError(t, err)
+	if err != nil {
+		t.Skipf("skipping integration test because database is unavailable: %v", err)
+	}
 	t.Cleanup(func() {
 		_ = conn.Close(context.Background())
 	})
 
 	applyConstraintMigration(t, ctx, conn)
 	applyStorageReadModelMigration(t, ctx, conn)
+	applyProblemRouteCodeMigration(t, ctx, conn)
 	return ctx, conn
 }
 
@@ -300,6 +303,23 @@ func applyStorageReadModelMigration(t *testing.T, ctx context.Context, conn *pgx
 	t.Helper()
 
 	migrationPath := filepath.Join("..", "..", "..", "..", "packages", "database", "migrations", "000003_storage_read_models.sql")
+	content, err := os.ReadFile(migrationPath)
+	require.NoError(t, err)
+
+	parts := strings.Split(string(content), "-- +goose Down")
+	require.Len(t, parts, 2)
+
+	upSQL := strings.TrimSpace(strings.TrimPrefix(parts[0], "-- +goose Up"))
+	_, err = conn.Exec(ctx, upSQL)
+	if err != nil && !strings.Contains(err.Error(), "already exists") && !strings.Contains(err.Error(), "already a member") {
+		require.NoError(t, err)
+	}
+}
+
+func applyProblemRouteCodeMigration(t *testing.T, ctx context.Context, conn *pgx.Conn) {
+	t.Helper()
+
+	migrationPath := filepath.Join("..", "..", "..", "..", "packages", "database", "migrations", "000005_problem_public_route_codes.sql")
 	content, err := os.ReadFile(migrationPath)
 	require.NoError(t, err)
 

@@ -17,6 +17,7 @@ type Config struct {
 	SessionCookieName    string
 	SessionDurationHours int
 	CookieSecure         bool
+	ProblemRouteSalt     string
 }
 
 func LoadConfig() Config {
@@ -32,6 +33,7 @@ func LoadConfig() Config {
 		SessionCookieName:    getenv("SESSION_COOKIE_NAME", "oj_session"),
 		SessionDurationHours: getenvInt("SESSION_DURATION_HOURS", 336),
 		CookieSecure:         getenv("COOKIE_SECURE", "false") == "true",
+		ProblemRouteSalt:     getenv("PROBLEM_ROUTE_SALT", ""),
 	}
 }
 

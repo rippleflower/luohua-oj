@@ -7,6 +7,10 @@ import {
   userRoleSchema,
 } from "./auth.schemas";
 import { contestStatusSchema } from "./contest.schemas";
+import {
+  problemSampleSchema,
+  problemStatementSectionSchema,
+} from "./problem.schemas";
 
 export const adminUserSummarySchema = z.object({
   id: z.string().min(1),
@@ -35,6 +39,8 @@ export const adminUserDetailSchema = adminUserSummarySchema.extend({
 
 export const adminProblemSummarySchema = z.object({
   id: z.string().min(1),
+  problemNo: z.number().int().positive(),
+  routeCode: z.string().min(1),
   slug: z.string().min(1),
   title: z.string().min(1),
   difficulty: z.enum(["EASY", "MEDIUM", "HARD"]),
@@ -46,6 +52,12 @@ export const adminProblemSummarySchema = z.object({
   submissionCount: z.number().int().nonnegative(),
   acceptedRate: z.number().min(0).max(100),
   updatedAt: z.string().datetime(),
+});
+
+export const adminProblemDetailSchema = adminProblemSummarySchema.extend({
+  statementJson: z.array(problemStatementSectionSchema),
+  samples: z.array(problemSampleSchema),
+  tags: z.array(z.string().min(1)),
 });
 
 export const adminContestSummarySchema = z.object({
@@ -144,6 +156,7 @@ export const announcementSchema = z.object({
 export type AdminUserSummary = z.infer<typeof adminUserSummarySchema>;
 export type AdminUserDetail = z.infer<typeof adminUserDetailSchema>;
 export type AdminProblemSummary = z.infer<typeof adminProblemSummarySchema>;
+export type AdminProblemDetail = z.infer<typeof adminProblemDetailSchema>;
 export type AdminContestSummary = z.infer<typeof adminContestSummarySchema>;
 export type AdminSubmissionSummary = z.infer<
   typeof adminSubmissionSummarySchema

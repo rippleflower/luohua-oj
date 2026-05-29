@@ -575,7 +575,7 @@ func (r *SQLRepository) ListAdminProblems(ctx context.Context) ([]AdminProblemSu
 	rows, err := r.db.Query(
 		ctx,
 		`SELECT
-		   p.id, p.slug, p.title, p.difficulty::text, p.time_limit_ms, p.memory_limit_kb,
+		   p.id, p.problem_no, p.slug, p.title, p.difficulty::text, p.time_limit_ms, p.memory_limit_kb,
 		   COALESCE(pv.status, CASE WHEN p.is_published THEN 'PUBLISHED' ELSE 'DRAFT' END),
 		   COALESCE(pv.version_no, 1),
 		   p.is_published,
@@ -594,7 +594,7 @@ func (r *SQLRepository) ListAdminProblems(ctx context.Context) ([]AdminProblemSu
 	items := make([]AdminProblemSummary, 0)
 	for rows.Next() {
 		var item AdminProblemSummary
-		if err := rows.Scan(&item.ID, &item.Slug, &item.Title, &item.Difficulty, &item.TimeLimitMs, &item.MemoryLimitKb, &item.Status, &item.CurrentVersionNo, &item.IsPublished, &item.SubmissionCount, &item.AcceptedRate, &item.UpdatedAt); err != nil {
+		if err := rows.Scan(&item.ID, &item.ProblemNo, &item.Slug, &item.Title, &item.Difficulty, &item.TimeLimitMs, &item.MemoryLimitKb, &item.Status, &item.CurrentVersionNo, &item.IsPublished, &item.SubmissionCount, &item.AcceptedRate, &item.UpdatedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, item)

@@ -21,7 +21,4 @@ jobs:
         with:
           go-version: "1.23"
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @oj/shared test
-      - run: pnpm --filter @oj/web test
-      - run: pnpm --filter @oj/web build
-      - run: go test ./apps/api/... ./apps/judge-worker/...
+      - run: pnpm ci:check

@@ -1,9 +1,18 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { LocaleProvider } from "../../lib/locale";
 import { ContestsRoute } from "./index";
+
+vi.mock("../../lib/env", () => ({
+  env: {
+    apiBaseUrl: "",
+    adminBaseUrl: "",
+    submissionsUsername: "",
+    demoMode: true,
+  },
+}));
 
 describe("ContestsRoute", () => {
   it("renders contest groups", async () => {

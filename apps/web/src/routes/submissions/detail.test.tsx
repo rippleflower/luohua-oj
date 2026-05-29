@@ -1,11 +1,20 @@
 import { render, screen } from "@testing-library/react";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { recordSubmissionHistory } from "../../features/submissions/history";
 import { LocaleProvider } from "../../lib/locale";
 import { queryClient } from "../../lib/query-client";
 import { SubmissionDetailRoute } from "./detail";
+
+vi.mock("../../lib/env", () => ({
+  env: {
+    apiBaseUrl: "",
+    adminBaseUrl: "",
+    submissionsUsername: "",
+    demoMode: true,
+  },
+}));
 
 describe("SubmissionDetailRoute", () => {
   beforeEach(() => {

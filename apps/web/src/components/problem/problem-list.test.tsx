@@ -12,6 +12,8 @@ describe("ProblemList", () => {
           problems={[
             {
               id: "two-sum",
+              problemNo: 1,
+              routeCode: "LOCAL1",
               slug: "two-sum",
               title: "Two Sum",
               difficulty: "EASY",

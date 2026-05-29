@@ -5,6 +5,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "../../lib/locale";
 import { ProblemDetailRoute } from "./detail";
 
+vi.mock("../../lib/env", () => ({
+  env: {
+    apiBaseUrl: "",
+    adminBaseUrl: "",
+    submissionsUsername: "",
+    demoMode: true,
+  },
+}));
+
 vi.mock("@monaco-editor/react", () => ({
   default: ({ value }: { value: string }) => (
     <textarea data-testid="monaco-editor" readOnly value={value} />
@@ -50,6 +59,7 @@ describe("ProblemDetailRoute", () => {
 
   it("renders local fallback detail data", async () => {
     const queryClient = new QueryClient();
+    window.history.pushState({}, "", "/problems/two-sum?fromMakeup=april-grand-prix");
 
     render(
       <LocaleProvider>
@@ -66,8 +76,11 @@ describe("ProblemDetailRoute", () => {
     expect(screen.getByTestId("monaco-editor")).toHaveValue(
       "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n  ios::sync_with_stdio(false);\n  cin.tie(nullptr);\n\n  return 0;\n}\n",
     );
-    expect(
-      screen.getByText("problems/two-sum/versions/1/public/sample-1.in"),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/2 7 11 15/)).toBeInTheDocument();
+    expect(screen.getByText("0 1")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "返回补题清单" })).toHaveAttribute(
+      "href",
+      "/contests/april-grand-prix/makeup-list",
+    );
   });
 });

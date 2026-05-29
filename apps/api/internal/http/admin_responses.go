@@ -151,6 +151,14 @@ func adminProblemResponse(item problem.AdminProblem) map[string]any {
 	}
 }
 
+func adminProblemDetailResponse(item problem.AdminProblemDetail) map[string]any {
+	response := adminProblemResponse(item.AdminProblem)
+	response["statementJson"] = item.StatementJSON
+	response["samples"] = item.Samples
+	response["tags"] = item.Tags
+	return response
+}
+
 func nullableUUIDStringPtr(value *uuid.UUID) any {
 	if value == nil {
 		return nil

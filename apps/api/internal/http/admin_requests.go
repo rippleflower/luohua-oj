@@ -47,6 +47,25 @@ type adminProblemUpsertRequest struct {
 	Reason        string `json:"reason"`
 }
 
+type adminProblemStatementSectionRequest struct {
+	Kind    string `json:"kind"`
+	Section string `json:"section"`
+	Content string `json:"content"`
+}
+
+type adminProblemSampleRequest struct {
+	Input  string `json:"input"`
+	Output string `json:"output"`
+	Weight int    `json:"weight"`
+}
+
+type adminProblemContentUpdateRequest struct {
+	StatementJSON []adminProblemStatementSectionRequest `json:"statementJson"`
+	Samples       []adminProblemSampleRequest           `json:"samples"`
+	Tags          []string                              `json:"tags"`
+	Reason        string                                `json:"reason"`
+}
+
 type adminReasonOnlyRequest struct {
 	Reason string `json:"reason"`
 }
@@ -113,6 +132,14 @@ func decodeAdminProblemUpsertRequest(r *http.Request) (adminProblemUpsertRequest
 	var request adminProblemUpsertRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		return adminProblemUpsertRequest{}, err
+	}
+	return request, nil
+}
+
+func decodeAdminProblemContentUpdateRequest(r *http.Request) (adminProblemContentUpdateRequest, error) {
+	var request adminProblemContentUpdateRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		return adminProblemContentUpdateRequest{}, err
 	}
 	return request, nil
 }

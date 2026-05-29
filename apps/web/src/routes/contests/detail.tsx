@@ -19,7 +19,7 @@ const problemStatusLabel = {
 
 export function ContestDetailRoute({ slug }: { slug: string }) {
   const { locale } = useLocale();
-  const { data: contest } = useContest(slug);
+  const { data: contest, error, isError } = useContest(slug);
 
   return (
     <AppShell
@@ -34,7 +34,15 @@ export function ContestDetailRoute({ slug }: { slug: string }) {
         </a>
       }
     >
-      {!contest ? (
+      {isError ? (
+        <div className="rounded-3xl border border-rose-200 bg-rose-50 p-8 text-sm text-rose-700">
+          {error instanceof Error
+            ? error.message
+            : locale === "zh"
+              ? "比赛加载失败。"
+              : "Failed to load contest."}
+        </div>
+      ) : !contest ? (
         <div className="rounded-3xl border border-dashed border-slate-200 bg-white/80 p-8 text-sm text-slate-500">
           {locale === "zh" ? "没有找到这场比赛。" : "Contest not found."}
         </div>
@@ -127,7 +135,7 @@ export function ContestDetailRoute({ slug }: { slug: string }) {
           </section>
 
           <aside className="grid gap-3 sm:grid-cols-2 lg:col-span-2 xl:col-span-1 xl:grid-cols-1">
-            <section className="rounded-3xl border border-slate-200/80 bg-slate-950 p-4.5 text-white sm:col-span-2 xl:col-span-1">
+          <section className="rounded-3xl border border-slate-200/80 bg-slate-950 p-4.5 text-white sm:col-span-2 xl:col-span-1">
               <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-teal-200/80">
                 {locale === "zh" ? "比赛状态" : "Contest Status"}
               </p>
@@ -147,6 +155,22 @@ export function ContestDetailRoute({ slug }: { slug: string }) {
                 </p>
               </div>
             </section>
+            {contest.status === "ENDED" ? (
+              <section className="rounded-3xl border border-slate-200/80 bg-white/85 p-4">
+                <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-slate-500">{locale === "zh" ? "赛后补题" : "Post-contest Makeup"}</p>
+                <p className="mt-2 text-sm leading-6 text-slate-700">
+                  {locale === "zh"
+                    ? "生成补题清单，优先处理比赛中尝试未过的题，再补未尝试的中低难题。"
+                    : "Generate a makeup list: failed attempts first, then unattempted lower-difficulty problems."}
+                </p>
+                <a
+                  className="mt-3 inline-flex rounded-full bg-slate-950 px-3.5 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+                  href={webRoutes.contestMakeup(contest.slug)}
+                >
+                  {locale === "zh" ? "生成补题清单" : "Generate Makeup List"}
+                </a>
+              </section>
+            ) : null}
             <section className="rounded-3xl border border-slate-200/80 bg-white/85 p-4">
               <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-slate-500">
                 {locale === "zh" ? "最近提交" : "Recent submissions"}

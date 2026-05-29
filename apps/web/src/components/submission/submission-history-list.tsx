@@ -1,3 +1,4 @@
+import { webRoutes } from "@oj/shared";
 import type { SubmissionSummary } from "../../features/submissions/schema";
 import { useLocale } from "../../lib/locale";
 import { SubmissionStatusBadge } from "./submission-status-badge";
@@ -32,7 +33,7 @@ export function SubmissionHistoryList({
     <section className="rounded-lg border border-slate-200 bg-white p-6">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{locale === "zh" ? "最近提交" : "Recent"}</h2>
-        <a className="text-sm font-medium text-slate-700 hover:underline" href="/submissions">
+        <a className="text-sm font-medium text-slate-700 hover:underline" href={webRoutes.submissions}>
           {locale === "zh" ? "新建" : "New"}
         </a>
       </div>
@@ -90,7 +91,7 @@ export function SubmissionHistoryList({
               {submissions.map((submission) => (
                 <tr key={submission.id} className="hover:bg-slate-50">
                   <td className="px-4 py-4 font-medium text-slate-950">
-                    <a className="hover:underline" href={`/submissions/${submission.id}`}>
+                    <a className="hover:underline" href={webRoutes.submissionDetail(submission.id)}>
                       {submission.id.slice(0, 8)}
                     </a>
                   </td>

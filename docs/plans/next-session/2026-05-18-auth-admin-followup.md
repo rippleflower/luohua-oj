@@ -1,5 +1,7 @@
 # Auth / Admin Follow-up Plan
 
+> Historical note: this plan predates the 2026-05-29 baseline. Core admin write paths, rejudge, and Argon2 migration are now in place. Use [2026-05-29-beta-hardening-followup.md](/Volumes/新加卷/project/luohua-oj/docs/plans/next-session/2026-05-29-beta-hardening-followup.md) for current follow-up.
+
 ## Summary
 
 - 目标：把本轮已经打通的认证、个人中心、独立后台从“可登录、可读”推进到“关键后台写链路可用、权限更稳、测试更完整”。

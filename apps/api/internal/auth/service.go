@@ -74,6 +74,15 @@ func (s *Service) Login(ctx context.Context, input LoginInput, userAgent string)
 	if err := verifyPassword(input.Password, stored.PasswordHash); err != nil {
 		return AuthResult{}, errors.New("invalid credentials")
 	}
+	if passwordNeedsUpgrade(stored.PasswordHash) {
+		passwordHash, err := hashPassword(input.Password)
+		if err != nil {
+			return AuthResult{}, err
+		}
+		if err := s.repo.UpdatePassword(ctx, stored.ID, passwordHash); err != nil {
+			return AuthResult{}, err
+		}
+	}
 	return s.issueSession(ctx, stored.User, input.IP, userAgent)
 }
 

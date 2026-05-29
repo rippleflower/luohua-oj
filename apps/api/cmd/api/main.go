@@ -9,6 +9,7 @@ import (
 
 	"github.com/example/oj3/apps/api/internal/auth"
 	"github.com/example/oj3/apps/api/internal/contest"
+	"github.com/example/oj3/apps/api/internal/contest_makeup"
 	apphttp "github.com/example/oj3/apps/api/internal/http"
 	"github.com/example/oj3/apps/api/internal/platform"
 	"github.com/example/oj3/apps/api/internal/problem"
@@ -51,8 +52,10 @@ func main() {
 		time.Duration(cfg.SessionDurationHours)*time.Hour,
 		logger.With("component", "auth.service"),
 	)
-	problemService := problem.NewService(problem.NewSQLRepository(pool))
+	problemCodec := problem.NewRouteCodec(cfg.ProblemRouteSalt)
+	problemService := problem.NewService(problem.NewSQLRepository(pool, source.LocalStore{Root: cfg.SourceRoot}), problemCodec)
 	contestService := contest.NewService(contest.NewSQLRepository(pool))
+	contestMakeupService := contest_makeup.NewService(contest_makeup.NewSQLRepository(pool))
 
 	server := &http.Server{
 		Addr: cfg.HTTPAddr,
@@ -64,11 +67,13 @@ func main() {
 			ProblemAdmin:      problemService,
 			ContestReader:     contestService,
 			ContestAdmin:      contestService,
+			ContestMakeup:     contestMakeupService,
 			AuthService:       authService,
 			SessionCookieName: cfg.SessionCookieName,
 			CookieSecure:      cfg.CookieSecure,
 			SourceRoot:        cfg.SourceRoot,
 			RedisAddr:         cfg.RedisAddr,
+			ProblemRouteSalt:  cfg.ProblemRouteSalt,
 			Logger:            logger,
 		}),
 	}

@@ -89,4 +89,39 @@ describe("ContestDetailRoute", () => {
     expect(linkedProblem).toHaveAttribute("href", "/problems/two-sum");
     expect(screen.getByText("未公开题目")).toBeInTheDocument();
   });
+
+  it("shows makeup-list action when contest has ended", () => {
+    vi.mocked(useContest).mockReturnValue({
+      data: {
+        id: "contest-1",
+        slug: "april-grand-prix",
+        title: "四月大奖赛",
+        status: "ENDED",
+        startsAt: "2026-04-27T11:00:00Z",
+        endsAt: "2026-04-27T13:00:00Z",
+        duration: "2 小时",
+        problemCount: 2,
+        participantCount: 128,
+        blurb: "已结束比赛",
+        rankSummary: "最终第 42 名",
+        remaining: "比赛已结束",
+        recentSubmissions: [],
+        problems: [
+          { code: "A", title: "A", difficulty: "EASY", status: "SOLVED" },
+          { code: "B", title: "B", difficulty: "MEDIUM", status: "ATTEMPTED" },
+        ],
+      },
+    } as unknown as ReturnType<typeof useContest>);
+
+    render(
+      <LocaleProvider>
+        <QueryClientProvider client={new QueryClient()}>
+          <ContestDetailRoute slug="april-grand-prix" />
+        </QueryClientProvider>
+      </LocaleProvider>,
+    );
+
+    const button = screen.getByRole("link", { name: "生成补题清单" });
+    expect(button).toHaveAttribute("href", "/contests/april-grand-prix/makeup-list");
+  });
 });

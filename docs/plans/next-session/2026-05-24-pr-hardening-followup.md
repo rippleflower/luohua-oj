@@ -1,5 +1,7 @@
 # PR Hardening Follow-up Plan
 
+> Historical note: this plan predates the 2026-05-29 baseline. The problem/contest admin write path and default demo fallback cleanup have since moved forward. Use [2026-05-29-beta-hardening-followup.md](/Volumes/新加卷/project/luohua-oj/docs/plans/next-session/2026-05-29-beta-hardening-followup.md) for current follow-up.
+
 ## Summary
 
 - 目标：

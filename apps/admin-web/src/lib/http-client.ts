@@ -2,6 +2,16 @@ import { env } from "./env";
 
 type RequestOptions = Omit<RequestInit, "body"> & { body?: unknown };
 
+export class ApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 function readCookie(name: string): string {
   if (typeof document === "undefined") {
     return "";
@@ -20,19 +30,19 @@ function toUrl(path: string): string {
 }
 
 export async function getJSON<T>(path: string): Promise<T> {
-  const response = await fetch(toUrl(path), {
+  const response = await fetchWithTimeout(toUrl(path), {
     credentials: "include",
     headers: { Accept: "application/json" },
   });
   if (!response.ok) {
-    throw new Error(await readErrorMessage(response));
+    throw new ApiError(await readErrorMessage(response), response.status);
   }
   return response.json() as Promise<T>;
 }
 
 async function sendJSON<T>(method: string, path: string, options: RequestOptions = {}): Promise<T> {
   const csrfToken = readCookie("oj_csrf");
-  const response = await fetch(toUrl(path), {
+  const response = await fetchWithTimeout(toUrl(path), {
     method,
     credentials: "include",
     headers: {
@@ -44,7 +54,7 @@ async function sendJSON<T>(method: string, path: string, options: RequestOptions
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
   });
   if (!response.ok) {
-    throw new Error(await readErrorMessage(response));
+    throw new ApiError(await readErrorMessage(response), response.status);
   }
   return response.json() as Promise<T>;
 }
@@ -63,4 +73,23 @@ async function readErrorMessage(response: Response): Promise<string> {
     // ignore invalid or empty error bodies and fall back to status text
   }
   return `request failed: ${response.status}`;
+}
+
+async function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit, timeoutMs = 10_000): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new ApiError("request timed out", 408);
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
 }

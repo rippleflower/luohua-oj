@@ -1,12 +1,14 @@
 import type { ProblemDetail, ProblemSummary } from "@oj/shared";
 
 import { env } from "../../lib/env";
-import { getJSON } from "../../lib/http-client";
+import { ApiError, getJSON } from "../../lib/http-client";
 import { problemDetailSchema, problemListSchema } from "./schema";
 
 const problemSeed: ProblemSummary[] = [
   {
     id: "two-sum",
+    problemNo: 1,
+    routeCode: "LOCAL1",
     slug: "two-sum",
     title: "Two Sum",
     difficulty: "EASY",
@@ -15,6 +17,8 @@ const problemSeed: ProblemSummary[] = [
   },
   {
     id: "shortest-path",
+    problemNo: 2,
+    routeCode: "LOCAL2",
     slug: "shortest-path",
     title: "Shortest Path",
     difficulty: "MEDIUM",
@@ -23,6 +27,8 @@ const problemSeed: ProblemSummary[] = [
   },
   {
     id: "dynamic-ranking",
+    problemNo: 3,
+    routeCode: "LOCAL3",
     slug: "dynamic-ranking",
     title: "Dynamic Ranking",
     difficulty: "HARD",
@@ -34,6 +40,8 @@ const problemSeed: ProblemSummary[] = [
 const problemDetailSeed: ProblemDetail[] = [
   {
     id: "two-sum",
+    problemNo: 1,
+    routeCode: "LOCAL1",
     slug: "two-sum",
     title: "Two Sum",
     difficulty: "EASY",
@@ -61,8 +69,8 @@ const problemDetailSeed: ProblemDetail[] = [
     ],
     samplesJson: [
       {
-        inputObjectKey: "problems/two-sum/versions/1/public/sample-1.in",
-        outputObjectKey: "problems/two-sum/versions/1/public/sample-1.out",
+        input: "9\n2 7 11 15\n",
+        output: "0 1\n",
         weight: 1,
       },
     ],
@@ -79,6 +87,8 @@ const problemDetailSeed: ProblemDetail[] = [
   },
   {
     id: "shortest-path",
+    problemNo: 2,
+    routeCode: "LOCAL2",
     slug: "shortest-path",
     title: "Shortest Path",
     difficulty: "MEDIUM",
@@ -106,9 +116,8 @@ const problemDetailSeed: ProblemDetail[] = [
     ],
     samplesJson: [
       {
-        inputObjectKey: "problems/shortest-path/versions/1/public/sample-1.in",
-        outputObjectKey:
-          "problems/shortest-path/versions/1/public/sample-1.out",
+        input: "4 4 1\n1 2 1\n2 3 2\n1 4 7\n3 4 1\n",
+        output: "0 1 3 4\n",
         weight: 1,
       },
     ],
@@ -125,6 +134,8 @@ const problemDetailSeed: ProblemDetail[] = [
   },
   {
     id: "dynamic-ranking",
+    problemNo: 3,
+    routeCode: "LOCAL3",
     slug: "dynamic-ranking",
     title: "Dynamic Ranking",
     difficulty: "HARD",
@@ -152,10 +163,8 @@ const problemDetailSeed: ProblemDetail[] = [
     ],
     samplesJson: [
       {
-        inputObjectKey:
-          "problems/dynamic-ranking/versions/1/public/sample-1.in",
-        outputObjectKey:
-          "problems/dynamic-ranking/versions/1/public/sample-1.out",
+        input: "5 3\n1 5 2 4 3\nQ 1 5 3\nU 3 6\nQ 1 5 3\n",
+        output: "3\n4\n",
         weight: 1,
       },
     ],
@@ -173,28 +182,56 @@ const problemDetailSeed: ProblemDetail[] = [
 ];
 
 export async function listProblems(): Promise<ProblemSummary[]> {
-  if (env.apiBaseUrl !== "") {
+  try {
     const response = await getJSON<unknown>("/problems");
     return problemListSchema.parse(response);
+  } catch {
+    if (env.demoMode) {
+      return problemListSchema.parse(problemSeed);
+    }
+    throw missingProblemApiError();
   }
-
-  return problemListSchema.parse(problemSeed);
 }
 
 export async function getProblem(
   slug: string,
 ): Promise<ProblemDetail | undefined> {
-  if (env.apiBaseUrl !== "") {
-    try {
-      const response = await getJSON<unknown>(
-        `/problems/${encodeURIComponent(slug)}`,
-      );
-      return problemDetailSchema.parse(response);
-    } catch {
-      // fall through to local seed while problem authoring and public snapshots are still being wired end-to-end
+  try {
+    const response = await getJSON<unknown>(
+      `/problems/${encodeURIComponent(slug)}`,
+    );
+    return problemDetailSchema.parse(response);
+  } catch {
+    if (!env.demoMode) {
+      throw missingProblemApiError();
     }
+    const found = problemDetailSeed.find((problem) => problem.slug === slug);
+    return found ? problemDetailSchema.parse(found) : undefined;
   }
+}
 
-  const found = problemDetailSeed.find((problem) => problem.slug === slug);
-  return found ? problemDetailSchema.parse(found) : undefined;
+export async function getProblemByRouteCode(
+  routeCode: string,
+): Promise<ProblemDetail | undefined> {
+  try {
+    const response = await getJSON<unknown>(
+      `/problems/code/${encodeURIComponent(routeCode)}`,
+    );
+    return problemDetailSchema.parse(response);
+  } catch {
+    if (!env.demoMode) {
+      throw missingProblemApiError();
+    }
+    const found = problemDetailSeed.find((problem) => problem.routeCode === routeCode);
+    return found ? problemDetailSchema.parse(found) : undefined;
+  }
+}
+
+function missingProblemApiError() {
+  return new ApiError(
+    env.apiBaseUrl === ""
+      ? "problem api is unavailable because VITE_API_BASE_URL is empty and VITE_DEMO_MODE is false"
+      : "problem api request failed and VITE_DEMO_MODE is false",
+    503,
+  );
 }

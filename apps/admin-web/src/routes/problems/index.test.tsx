@@ -20,6 +20,8 @@ describe("ProblemsRoute", () => {
     let problems = [
       {
         id: "problem-1",
+        problemNo: 1,
+        routeCode: "CODE1",
         slug: "two-sum",
         title: "Two Sum",
         difficulty: "EASY",
@@ -58,6 +60,8 @@ describe("ProblemsRoute", () => {
           const body = JSON.parse(String(init?.body ?? "{}"));
           const created = {
             id: "problem-2",
+            problemNo: 2,
+            routeCode: "CODE2",
             slug: body.slug,
             title: body.title,
             difficulty: body.difficulty,

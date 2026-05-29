@@ -18,8 +18,10 @@ func mountAdminRoutes(r chi.Router, opts authHandlerOptions) {
 		r.With(requireAdminPermission(auth.PermissionUsersRoles), requireCSRF).Put("/users/{userID}/permissions", adminUserPermissionsUpdateHandler(opts))
 
 		r.With(requireAdminPermission(auth.PermissionProblemsView)).Get("/problems", adminProblemsHandler(opts))
+		r.With(requireAdminPermission(auth.PermissionProblemsView)).Get("/problems/{problemID}", adminProblemDetailHandler(opts))
 		r.With(requireAdminPermission(auth.PermissionProblemsEdit), requireCSRF).Post("/problems", adminProblemCreateHandler(opts))
 		r.With(requireAdminPermission(auth.PermissionProblemsEdit), requireCSRF).Patch("/problems/{problemID}", adminProblemUpdateHandler(opts))
+		r.With(requireAdminPermission(auth.PermissionProblemsEdit), requireCSRF).Patch("/problems/{problemID}/content", adminProblemContentUpdateHandler(opts))
 		r.With(requireAdminPermission(auth.PermissionProblemsPublish), requireCSRF).Post("/problems/{problemID}/publish", adminProblemPublishHandler(opts))
 		r.With(requireAdminPermission(auth.PermissionContestsView)).Get("/contests", adminContestsHandler(opts))
 		r.With(requireAdminPermission(auth.PermissionContestsEdit), requireCSRF).Post("/contests", adminContestCreateHandler(opts))
