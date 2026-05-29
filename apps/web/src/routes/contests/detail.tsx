@@ -1,5 +1,3 @@
-import { webRoutes } from "@oj/shared";
-
 import { AppShell } from "../../components/layout/app-shell";
 import { SubmissionStatusBadge } from "../../components/submission/submission-status-badge";
 import { useContest } from "../../features/contests/hooks";
@@ -15,6 +13,13 @@ const problemStatusLabel = {
   SOLVED: "已通过",
   ATTEMPTED: "尝试过",
   LOCKED: "未开始",
+} as const;
+
+const webRoutes = {
+  contests: "/contests",
+  legacyProblemDetail: (slug: string) => `/problems/${encodeURIComponent(slug)}`,
+  problems: "/problems",
+  submissions: "/submissions",
 } as const;
 
 export function ContestDetailRoute({ slug }: { slug: string }) {
