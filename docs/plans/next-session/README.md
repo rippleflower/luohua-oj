@@ -6,24 +6,23 @@
 
 - `docs/logs/development-log.md`
 - `docs/plans/templates/plan-mode-template.md`
-- `docs/plans/next-session/2026-05-18-auth-admin-followup.md`
-- `docs/plans/next-session/2026-05-24-pr-hardening-followup.md`
+- `docs/plans/next-session/2026-05-29-beta-hardening-followup.md`
 
 ## Current Focus Candidates
 
-1. auth / admin 后续收口
-   - 入口：`docs/plans/next-session/2026-05-18-auth-admin-followup.md`
-   - 目标：补齐后台题目/比赛/重判写链路与权限测试
+1. beta hardening
+   - 入口：`docs/plans/next-session/2026-05-29-beta-hardening-followup.md`
+   - 目标：补 live smoke、继续扩大回归覆盖、收口 infra/documentation
 
-2. PR 收口与下一阶段基线
-   - 入口：`docs/plans/next-session/2026-05-24-pr-hardening-followup.md`
-   - 目标：基于当前 draft PR 收口评审风险，并推进后台关键写链路
+2. historical context
+   - 入口：`docs/plans/next-session/2026-05-18-auth-admin-followup.md`
+   - 目标：查看这轮收口前的缺口来源，不把它当成当前事实
 
 3. sqlc 与 role 枚举清理
    - 目标：移除 `PROBLEM_SETTER` 残留，避免后续生成代码失真
 
-4. 密码哈希正式化
-   - 目标：从当前 fallback 收口到计划内方案，或明确保留临时实现的边界
+4. deployment-oriented automation
+   - 目标：把当前 API 级、worker 级、前后端级验证进一步串成可重复 smoke
 
 ## Session Bootstrap Checklist
 
@@ -34,6 +33,4 @@
 - 如果要验证 submissions 后端：
   - `go test ./apps/api/...`
 - 如果要继续 auth / admin：
-  - `pnpm test`
-  - `pnpm build:web`
-  - `pnpm build:admin`
+  - `pnpm ci:check`

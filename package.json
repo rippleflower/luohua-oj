@@ -3,15 +3,22 @@
   "private": true,
   "packageManager": "pnpm@10.12.1",
   "scripts": {
+    "dev": "node ./scripts/dev-stack.mjs",
+    "dev:stack": "node ./scripts/dev-stack.mjs",
+    "dev:api": "go run ./apps/api/cmd/api",
+    "dev:worker": "go run ./apps/judge-worker/cmd/worker",
     "dev:web": "pnpm --filter @oj/web dev",
     "dev:admin": "pnpm --filter @oj/admin-web dev",
+    "dev:check": "node ./scripts/dev-check.mjs",
     "build:web": "pnpm --filter @oj/web build",
     "build:admin": "pnpm --filter @oj/admin-web build",
     "lint:web": "pnpm --filter @oj/web lint",
+    "test:shared": "pnpm --filter @oj/shared test",
     "test:web": "pnpm --filter @oj/web test",
     "test:admin": "pnpm --filter @oj/admin-web test",
     "test:go": "go test ./apps/api/... ./apps/judge-worker/...",
-    "test": "pnpm test:web && pnpm test:admin && pnpm test:go"
+    "test": "pnpm test:shared && pnpm test:web && pnpm test:admin && pnpm test:go",
+    "ci:check": "pnpm test:shared && pnpm test:web && pnpm build:web && pnpm test:admin && pnpm build:admin && pnpm test:go"
   },
   "devDependencies": {
     "typescript": "^5.6.0",

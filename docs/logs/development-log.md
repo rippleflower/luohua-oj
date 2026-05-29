@@ -1,5 +1,36 @@
 # Development Log
 
+## 2026-05-29
+
+### Scope
+
+- switched the user web to explicit `VITE_DEMO_MODE` gating instead of silent fallback
+- added admin problem draft detail/content editing through `/admin/problems/:id` and `/admin/problems/:id/content`
+- refreshed public problem detail samples to expose real sample input/output text instead of object keys
+- migrated password hashing to `argon2id` with legacy `sha256$...` verification and login-time upgrade
+- aligned root scripts and CI around the same shared/web/admin/go quality gate
+
+### Decisions
+
+- real backend data is now the default runtime expectation for the user web
+- `compatUserId` remains available only in demo mode, not in the default runtime path
+- problem sample v1 editing stays text-only; the backend writes sample objects and rebuilds test cases
+- old next-session plans remain useful as history, but they no longer describe the current baseline
+
+### Validation
+
+- `pnpm --filter @oj/shared test` passed
+- `pnpm --filter @oj/web test` passed
+- `pnpm --filter @oj/web build` passed
+- `pnpm --filter @oj/admin-web test` passed
+- `pnpm --filter @oj/admin-web build` passed
+- targeted Go package tests for auth, admin HTTP, and problem services passed during the change set
+
+### Current Limits
+
+- CI now enforces the full shared/web/admin/go gate, but there is not yet a live end-to-end smoke job that boots infra and drives login-submit-rejudge flows
+- local infrastructure files still include legacy MinIO references even though the current default runtime stores local objects under `SOURCE_ROOT`
+
 ## 2026-05-15
 
 ### Scope
@@ -108,5 +139,5 @@
 
 - the draft PR is still large in scope even after history cleanup; reviewer load is lower, but integration risk remains cross-layer
 - `apps/web` no longer triggers the `>500 kB` warning, but there is still no deliberate chunk-group strategy beyond route lazy loading
-- the problem workspace still exposes a compatibility user ID fallback because the user identity chain is not fully normalized yet
-- the next highest-risk area is not the shell UX anymore; it is backend/admin write-path completeness and PR review readiness
+- the 2026-05-24 compatibility user ID fallback was later reduced to demo mode only
+- the 2026-05-24 backend/admin write-path gap was later closed for the core problem/contest/rejudge baseline; remaining work is now beta hardening rather than missing core admin writes
