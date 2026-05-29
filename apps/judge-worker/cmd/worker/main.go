@@ -34,7 +34,7 @@ func main() {
 	server := asynq.NewServer(
 		asynq.RedisClientOpt{Addr: cfg.RedisAddr},
 		asynq.Config{
-			Concurrency: 2,
+			Concurrency: cfg.WorkerConcurrency,
 			Queues: map[string]int{
 				"judge": 1,
 			},
@@ -54,7 +54,7 @@ func main() {
 		logger.With("component", "judge.processor"),
 	).Register(mux)
 
-	logger.Info("judge worker listening", "component", "bootstrap", "event", "worker.started")
+	logger.Info("judge worker listening", "component", "bootstrap", "event", "worker.started", "redisAddr", cfg.RedisAddr, "databaseURL", cfg.DatabaseURL, "concurrency", cfg.WorkerConcurrency)
 	if err := server.Run(mux); err != nil {
 		logger.Error("judge worker stopped", "component", "bootstrap", "event", "worker.stopped", "error", err)
 		os.Exit(1)

@@ -102,6 +102,7 @@ func TestAdminProblemWriteRoutesForSuperAdmin(t *testing.T) {
 	manager := &fakeProblemAdmin{
 		response: problem.AdminProblem{
 			ID:               problemID,
+			ProblemNo:        1,
 			Slug:             "two-sum",
 			Title:            "Two Sum",
 			Difficulty:       "EASY",
@@ -111,6 +112,31 @@ func TestAdminProblemWriteRoutesForSuperAdmin(t *testing.T) {
 			CurrentVersionNo: 1,
 			IsPublished:      true,
 			UpdatedAt:        time.Date(2026, 5, 18, 12, 0, 0, 0, time.UTC),
+		},
+		detailResponse: problem.AdminProblemDetail{
+			AdminProblem: problem.AdminProblem{
+				ID:               problemID,
+				ProblemNo:        1,
+				Slug:             "two-sum",
+				Title:            "Two Sum",
+				Difficulty:       "EASY",
+				TimeLimitMs:      1000,
+				MemoryLimitKb:    262144,
+				Status:           "PUBLISHED",
+				CurrentVersionNo: 1,
+				IsPublished:      true,
+				UpdatedAt:        time.Date(2026, 5, 18, 12, 0, 0, 0, time.UTC),
+			},
+			StatementJSON: []problem.StatementSection{
+				{Kind: "markdown", Section: "statement", Content: "body"},
+				{Kind: "markdown", Section: "input", Content: "input"},
+				{Kind: "markdown", Section: "output", Content: "output"},
+				{Kind: "markdown", Section: "constraints", Content: "constraints"},
+			},
+			Samples: []problem.Sample{
+				{Input: "1 2\n", Output: "3\n", Weight: 1},
+			},
+			Tags: []string{"array"},
 		},
 	}
 	router := testRouter(t, auth.AuthenticatedUser{
@@ -149,6 +175,26 @@ func TestAdminProblemWriteRoutesForSuperAdmin(t *testing.T) {
 	require.Equal(t, problemID, manager.published.ProblemID)
 	require.Equal(t, "go live", manager.published.Reason)
 	require.Contains(t, publishRec.Body.String(), `"isPublished":true`)
+
+	detailReq := httptest.NewRequest(http.MethodGet, "/admin/problems/"+problemID.String(), nil)
+	detailReq.AddCookie(&http.Cookie{Name: "oj_session", Value: testSessionToken()})
+	detailRec := httptest.NewRecorder()
+	router.ServeHTTP(detailRec, detailReq)
+
+	require.Equal(t, http.StatusOK, detailRec.Code)
+	require.Equal(t, 1, manager.detailCalls)
+	require.Contains(t, detailRec.Body.String(), `"samples":[`)
+	require.Contains(t, detailRec.Body.String(), `"tags":["array"]`)
+
+	contentReq := adminProblemRequest(http.MethodPatch, "/admin/problems/"+problemID.String()+"/content", `{"statementJson":[{"kind":"markdown","section":"statement","content":"new body"},{"kind":"markdown","section":"input","content":"new input"},{"kind":"markdown","section":"output","content":"new output"},{"kind":"markdown","section":"constraints","content":"new constraints"}],"samples":[{"input":"1 2\n","output":"3\n","weight":1}],"tags":["array","math"],"reason":"rewrite"}`)
+	contentRec := httptest.NewRecorder()
+	router.ServeHTTP(contentRec, contentReq)
+
+	require.Equal(t, http.StatusOK, contentRec.Code)
+	require.Equal(t, 1, manager.contentCalls)
+	require.Equal(t, problemID, manager.contentUpdated.ProblemID)
+	require.Len(t, manager.contentUpdated.StatementJSON, 4)
+	require.Equal(t, []string{"array", "math"}, manager.contentUpdated.Tags)
 }
 
 func TestAdminContestWriteRoutesForSuperAdmin(t *testing.T) {
@@ -327,13 +373,17 @@ func testSessionHash() string {
 }
 
 type fakeProblemAdmin struct {
-	response     problem.AdminProblem
-	created      problem.CreateAdminInput
-	updated      problem.UpdateAdminInput
-	published    problem.PublishAdminInput
-	createCalls  int
-	updateCalls  int
-	publishCalls int
+	response       problem.AdminProblem
+	detailResponse problem.AdminProblemDetail
+	created        problem.CreateAdminInput
+	updated        problem.UpdateAdminInput
+	contentUpdated problem.UpdateAdminContentInput
+	published      problem.PublishAdminInput
+	createCalls    int
+	updateCalls    int
+	detailCalls    int
+	contentCalls   int
+	publishCalls   int
 }
 
 type fakeContestAdmin struct {
@@ -406,6 +456,17 @@ func (f *fakeProblemAdmin) UpdateAdmin(ctx context.Context, actor auth.Authentic
 	f.updateCalls++
 	f.updated = input
 	return f.response, nil
+}
+
+func (f *fakeProblemAdmin) GetAdminDetail(ctx context.Context, problemID uuid.UUID) (problem.AdminProblemDetail, error) {
+	f.detailCalls++
+	return f.detailResponse, nil
+}
+
+func (f *fakeProblemAdmin) UpdateAdminContent(ctx context.Context, actor auth.AuthenticatedUser, input problem.UpdateAdminContentInput) (problem.AdminProblemDetail, error) {
+	f.contentCalls++
+	f.contentUpdated = input
+	return f.detailResponse, nil
 }
 
 func (f *fakeProblemAdmin) PublishAdmin(ctx context.Context, actor auth.AuthenticatedUser, input problem.PublishAdminInput) (problem.AdminProblem, error) {

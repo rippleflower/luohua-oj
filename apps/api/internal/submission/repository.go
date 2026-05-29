@@ -497,6 +497,7 @@ func (r *SQLRepository) refreshProblemSummary(ctx context.Context, submissionID 
 		 )
 		 INSERT INTO problem_public_summaries (
 		   problem_id,
+		   problem_no,
 		   slug,
 		   title,
 		   difficulty,
@@ -507,6 +508,7 @@ func (r *SQLRepository) refreshProblemSummary(ctx context.Context, submissionID 
 		 )
 		 SELECT
 		   p.id,
+		   p.problem_no,
 		   p.slug,
 		   p.title,
 		   p.difficulty,
@@ -526,6 +528,7 @@ func (r *SQLRepository) refreshProblemSummary(ctx context.Context, submissionID 
 		 INNER JOIN problems p ON p.id = sp.problem_id
 		 LEFT JOIN problem_stats ps ON ps.problem_id = p.id
 		 ON CONFLICT (problem_id) DO UPDATE SET
+		   problem_no = EXCLUDED.problem_no,
 		   slug = EXCLUDED.slug,
 		   title = EXCLUDED.title,
 		   difficulty = EXCLUDED.difficulty,

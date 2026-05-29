@@ -36,6 +36,22 @@ func adminProblemsHandler(opts authHandlerOptions) http.HandlerFunc {
 	}
 }
 
+func adminProblemDetailHandler(opts authHandlerOptions) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		problemID, err := parseAdminProblemID(r)
+		if err != nil {
+			writeJSONError(w, http.StatusBadRequest, "invalid problem id")
+			return
+		}
+		item, err := opts.problemAdmin.GetAdminDetail(r.Context(), problemID)
+		if err != nil {
+			writeJSONError(w, http.StatusNotFound, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, adminProblemDetailResponse(item))
+	}
+}
+
 func adminProblemCreateHandler(opts authHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		actor, _ := currentUser(r.Context())
@@ -89,6 +105,51 @@ func adminProblemUpdateHandler(opts authHandlerOptions) http.HandlerFunc {
 			return
 		}
 		writeJSON(w, http.StatusOK, adminProblemResponse(item))
+	}
+}
+
+func adminProblemContentUpdateHandler(opts authHandlerOptions) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		actor, _ := currentUser(r.Context())
+		problemID, err := parseAdminProblemID(r)
+		if err != nil {
+			writeJSONError(w, http.StatusBadRequest, "invalid problem id")
+			return
+		}
+		request, err := decodeAdminProblemContentUpdateRequest(r)
+		if err != nil {
+			writeJSONError(w, http.StatusBadRequest, "invalid json body")
+			return
+		}
+		sections := make([]problem.StatementSection, 0, len(request.StatementJSON))
+		for _, section := range request.StatementJSON {
+			sections = append(sections, problem.StatementSection{
+				Kind:    section.Kind,
+				Section: section.Section,
+				Content: section.Content,
+			})
+		}
+		samples := make([]problem.Sample, 0, len(request.Samples))
+		for _, sample := range request.Samples {
+			samples = append(samples, problem.Sample{
+				Input:  sample.Input,
+				Output: sample.Output,
+				Weight: sample.Weight,
+			})
+		}
+		item, err := opts.problemAdmin.UpdateAdminContent(r.Context(), actor, problem.UpdateAdminContentInput{
+			ProblemID:     problemID,
+			StatementJSON: sections,
+			Samples:       samples,
+			Tags:          request.Tags,
+			Reason:        request.Reason,
+			IP:            requestIP(r),
+		})
+		if err != nil {
+			writeJSONError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, adminProblemDetailResponse(item))
 	}
 }
 

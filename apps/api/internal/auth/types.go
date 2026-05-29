@@ -208,6 +208,8 @@ type UpdateAdminUserInput struct {
 
 type AdminProblemSummary struct {
 	ID               uuid.UUID
+	ProblemNo        int64
+	RouteCode        string
 	Slug             string
 	Title            string
 	Difficulty       string

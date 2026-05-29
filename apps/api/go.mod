@@ -8,4 +8,5 @@ require (
 	github.com/hibiken/asynq v0.25.1
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/stretchr/testify v1.10.0
+	golang.org/x/crypto v0.37.0
 )

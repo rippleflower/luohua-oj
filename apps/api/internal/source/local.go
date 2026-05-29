@@ -2,6 +2,7 @@ package source
 
 import (
 	"context"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -28,9 +29,7 @@ func (s LocalStore) PutSource(ctx context.Context, submissionID uuid.UUID, langu
 		return "", err
 	}
 
-	cmd := exec.CommandContext(ctx, "zstd", "-q", "--stdout")
-	cmd.Stdin = strings.NewReader(source)
-	compressed, err := cmd.Output()
+	compressed, err := compressZstd(ctx, strings.NewReader(source))
 	if err != nil {
 		return "", err
 	}
@@ -40,6 +39,29 @@ func (s LocalStore) PutSource(ctx context.Context, submissionID uuid.UUID, langu
 	}
 
 	return objectKey, nil
+}
+
+func (s LocalStore) PutObject(_ context.Context, objectKey string, content []byte) error {
+	path := s.ResolvePath(objectKey)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(path, content, 0o600)
+}
+
+func (s LocalStore) ReadObject(objectKey string) ([]byte, error) {
+	path := s.ResolvePath(objectKey)
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	if strings.HasSuffix(strings.ToLower(path), ".zst") {
+		return exec.Command("zstd", "-d", "-q", "-c", path).Output()
+	}
+
+	return io.ReadAll(file)
 }
 
 func (s LocalStore) ResolvePath(objectKey string) string {
@@ -55,4 +77,10 @@ func (s LocalStore) now() time.Time {
 		return s.Clock()
 	}
 	return time.Now().UTC()
+}
+
+func compressZstd(ctx context.Context, reader io.Reader) ([]byte, error) {
+	cmd := exec.CommandContext(ctx, "zstd", "-q", "--stdout")
+	cmd.Stdin = reader
+	return cmd.Output()
 }

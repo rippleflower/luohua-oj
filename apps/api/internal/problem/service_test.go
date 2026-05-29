@@ -13,7 +13,7 @@ import (
 
 func TestCreateAdminNormalizesAndValidates(t *testing.T) {
 	repo := &capturingRepo{}
-	service := problem.NewService(repo)
+	service := problem.NewService(repo, problem.NewRouteCodec("test-salt"))
 	actor := auth.AuthenticatedUser{User: auth.User{ID: uuid.New(), Role: auth.RoleAdmin}}
 
 	created, err := service.CreateAdmin(context.Background(), actor, problem.CreateAdminInput{
@@ -34,7 +34,7 @@ func TestCreateAdminNormalizesAndValidates(t *testing.T) {
 }
 
 func TestCreateAdminRejectsInvalidDifficulty(t *testing.T) {
-	service := problem.NewService(&capturingRepo{})
+	service := problem.NewService(&capturingRepo{}, problem.NewRouteCodec("test-salt"))
 	actor := auth.AuthenticatedUser{User: auth.User{ID: uuid.New(), Role: auth.RoleAdmin}}
 
 	_, err := service.CreateAdmin(context.Background(), actor, problem.CreateAdminInput{
@@ -49,7 +49,7 @@ func TestCreateAdminRejectsInvalidDifficulty(t *testing.T) {
 }
 
 func TestUpdateAdminRejectsMissingProblemID(t *testing.T) {
-	service := problem.NewService(&capturingRepo{})
+	service := problem.NewService(&capturingRepo{}, problem.NewRouteCodec("test-salt"))
 	actor := auth.AuthenticatedUser{User: auth.User{ID: uuid.New(), Role: auth.RoleAdmin}}
 
 	_, err := service.UpdateAdmin(context.Background(), actor, problem.UpdateAdminInput{
@@ -64,7 +64,7 @@ func TestUpdateAdminRejectsMissingProblemID(t *testing.T) {
 }
 
 func TestPublishAdminRejectsMissingProblemID(t *testing.T) {
-	service := problem.NewService(&capturingRepo{})
+	service := problem.NewService(&capturingRepo{}, problem.NewRouteCodec("test-salt"))
 	actor := auth.AuthenticatedUser{User: auth.User{ID: uuid.New(), Role: auth.RoleAdmin}}
 
 	_, err := service.PublishAdmin(context.Background(), actor, problem.PublishAdminInput{})
@@ -72,10 +72,46 @@ func TestPublishAdminRejectsMissingProblemID(t *testing.T) {
 	require.ErrorContains(t, err, "problem id is required")
 }
 
+func TestUpdateAdminContentNormalizesSectionsAndTags(t *testing.T) {
+	repo := &capturingRepo{}
+	service := problem.NewService(repo, problem.NewRouteCodec("test-salt"))
+	actor := auth.AuthenticatedUser{User: auth.User{ID: uuid.New(), Role: auth.RoleAdmin}}
+	problemID := uuid.New()
+
+	updated, err := service.UpdateAdminContent(context.Background(), actor, problem.UpdateAdminContentInput{
+		ProblemID: problemID,
+		StatementJSON: []problem.StatementSection{
+			{Kind: "MARKDOWN", Section: "constraints", Content: " limit "},
+			{Kind: "", Section: "statement", Content: " body "},
+			{Kind: "markdown", Section: "output", Content: " out "},
+			{Kind: "markdown", Section: "input", Content: " in "},
+		},
+		Samples: []problem.Sample{
+			{Input: "1 2\r\n", Output: "3\r\n", Weight: 1},
+		},
+		Tags:   []string{" Graph ", "graph", " shortest-path "},
+		Reason: " tune ",
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, problemID, repo.contentUpdated.ProblemID)
+	require.Equal(t, []string{"graph", "shortest-path"}, repo.contentUpdated.Tags)
+	require.Equal(t, []string{"statement", "input", "output", "constraints"}, []string{
+		repo.contentUpdated.StatementJSON[0].Section,
+		repo.contentUpdated.StatementJSON[1].Section,
+		repo.contentUpdated.StatementJSON[2].Section,
+		repo.contentUpdated.StatementJSON[3].Section,
+	})
+	require.Equal(t, "markdown", repo.contentUpdated.StatementJSON[0].Kind)
+	require.Equal(t, "1 2\n", repo.contentUpdated.Samples[0].Input)
+	require.Equal(t, "graph", updated.Tags[0])
+}
+
 type capturingRepo struct {
-	created   problem.CreateAdminInput
-	updated   problem.UpdateAdminInput
-	published problem.PublishAdminInput
+	created        problem.CreateAdminInput
+	updated        problem.UpdateAdminInput
+	contentUpdated problem.UpdateAdminContentInput
+	published      problem.PublishAdminInput
 }
 
 func (c *capturingRepo) ListProblems(ctx context.Context) ([]problem.Summary, error) {
@@ -86,10 +122,24 @@ func (c *capturingRepo) GetProblemBySlug(ctx context.Context, slug string) (prob
 	return problem.Detail{}, nil
 }
 
+func (c *capturingRepo) GetProblemByNumber(ctx context.Context, problemNo int64) (problem.Detail, error) {
+	return problem.Detail{ProblemNo: problemNo}, nil
+}
+
+func (c *capturingRepo) GetAdminProblemDetail(ctx context.Context, problemID uuid.UUID) (problem.AdminProblemDetail, error) {
+	return problem.AdminProblemDetail{
+		AdminProblem: problem.AdminProblem{
+			ID:        problemID,
+			ProblemNo: 1,
+		},
+	}, nil
+}
+
 func (c *capturingRepo) CreateAdminProblem(ctx context.Context, actor auth.AuthenticatedUser, input problem.CreateAdminInput) (problem.AdminProblem, error) {
 	c.created = input
 	return problem.AdminProblem{
 		ID:               uuid.New(),
+		ProblemNo:        1,
 		Slug:             input.Slug,
 		Title:            input.Title,
 		Difficulty:       input.Difficulty,
@@ -103,10 +153,23 @@ func (c *capturingRepo) CreateAdminProblem(ctx context.Context, actor auth.Authe
 
 func (c *capturingRepo) UpdateAdminProblem(ctx context.Context, actor auth.AuthenticatedUser, input problem.UpdateAdminInput) (problem.AdminProblem, error) {
 	c.updated = input
-	return problem.AdminProblem{}, nil
+	return problem.AdminProblem{ProblemNo: 1}, nil
 }
 
 func (c *capturingRepo) PublishAdminProblem(ctx context.Context, actor auth.AuthenticatedUser, input problem.PublishAdminInput) (problem.AdminProblem, error) {
 	c.published = input
-	return problem.AdminProblem{}, nil
+	return problem.AdminProblem{ProblemNo: 1}, nil
+}
+
+func (c *capturingRepo) UpdateAdminProblemContent(ctx context.Context, actor auth.AuthenticatedUser, input problem.UpdateAdminContentInput) (problem.AdminProblemDetail, error) {
+	c.contentUpdated = input
+	return problem.AdminProblemDetail{
+		AdminProblem: problem.AdminProblem{
+			ID:        input.ProblemID,
+			ProblemNo: 1,
+		},
+		StatementJSON: input.StatementJSON,
+		Samples:       input.Samples,
+		Tags:          input.Tags,
+	}, nil
 }
