@@ -25,7 +25,6 @@ type authHandlerOptions struct {
 	contestAdmin      contest.AdminManager
 	submissionAdmin   submission.AdminManager
 	contestMakeup     contest_makeup.Reader
-	problemRouteCodec problem.RouteCodec
 }
 
 func registerHandler(opts authHandlerOptions) http.HandlerFunc {

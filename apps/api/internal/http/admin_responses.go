@@ -135,8 +135,6 @@ func judgeQueueSummaryResponse(summary submission.QueueSummary) map[string]any {
 func adminProblemResponse(item problem.AdminProblem) map[string]any {
 	return map[string]any{
 		"id":               item.ID.String(),
-		"problemNo":        item.ProblemNo,
-		"routeCode":        item.RouteCode,
 		"slug":             item.Slug,
 		"title":            item.Title,
 		"difficulty":       item.Difficulty,

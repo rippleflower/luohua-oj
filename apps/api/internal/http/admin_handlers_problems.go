@@ -17,8 +17,6 @@ func adminProblemsHandler(opts authHandlerOptions) http.HandlerFunc {
 		for _, item := range items {
 			response = append(response, adminProblemResponse(problem.AdminProblem{
 				ID:               item.ID,
-				ProblemNo:        item.ProblemNo,
-				RouteCode:        opts.problemRouteCodec.Encode(item.ProblemNo),
 				Slug:             item.Slug,
 				Title:            item.Title,
 				Difficulty:       item.Difficulty,

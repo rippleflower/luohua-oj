@@ -54,7 +54,6 @@ func NewRouter(options ...RouterOptions) http.Handler {
 			contestAdmin:      opts.ContestAdmin,
 			submissionAdmin:   opts.SubmissionAdmin,
 			contestMakeup:     opts.ContestMakeup,
-			problemRouteCodec: problem.NewRouteCodec(opts.ProblemRouteSalt),
 		}
 		mountAuthRoutes(r, authOpts)
 		mountAdminRoutes(r, authOpts)

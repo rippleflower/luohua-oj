@@ -9,8 +9,6 @@ import (
 
 type problemSummaryResponse struct {
 	ID           string   `json:"id"`
-	ProblemNo    int64    `json:"problemNo"`
-	RouteCode    string   `json:"routeCode"`
 	Slug         string   `json:"slug"`
 	Title        string   `json:"title"`
 	Difficulty   string   `json:"difficulty"`
@@ -20,8 +18,6 @@ type problemSummaryResponse struct {
 
 type problemDetailResponse struct {
 	ID            string          `json:"id"`
-	ProblemNo     int64           `json:"problemNo"`
-	RouteCode     string          `json:"routeCode"`
 	Slug          string          `json:"slug"`
 	Title         string          `json:"title"`
 	Difficulty    string          `json:"difficulty"`
@@ -35,8 +31,6 @@ type problemDetailResponse struct {
 func mapProblemSummaryResponse(item problem.Summary) problemSummaryResponse {
 	return problemSummaryResponse{
 		ID:           item.ID.String(),
-		ProblemNo:    item.ProblemNo,
-		RouteCode:    item.RouteCode,
 		Slug:         item.Slug,
 		Title:        item.Title,
 		Difficulty:   item.Difficulty,
@@ -48,8 +42,6 @@ func mapProblemSummaryResponse(item problem.Summary) problemSummaryResponse {
 func mapProblemDetailResponse(item problem.Detail) problemDetailResponse {
 	return problemDetailResponse{
 		ID:            item.ID.String(),
-		ProblemNo:     item.ProblemNo,
-		RouteCode:     item.RouteCode,
 		Slug:          item.Slug,
 		Title:         item.Title,
 		Difficulty:    item.Difficulty,

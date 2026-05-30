@@ -58,25 +58,3 @@ func getProblemHandler(reader problem.Reader, logger *slog.Logger) http.HandlerF
 		writeJSON(w, http.StatusOK, mapProblemDetailResponse(item))
 	}
 }
-
-func getProblemByRouteCodeHandler(reader problem.Reader, logger *slog.Logger) http.HandlerFunc {
-	if logger == nil {
-		logger = slog.Default()
-	}
-	handlerLogger := logger.With("component", "http.problems")
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		requestID := middleware.GetReqID(r.Context())
-		routeCode := chi.URLParam(r, "routeCode")
-		item, err := reader.GetByRouteCode(r.Context(), routeCode)
-		if err != nil {
-			handlerLogger.ErrorContext(r.Context(), "problem detail by code failed", "event", "problem.detail_by_code.failed", "requestId", requestID, "routeCode", routeCode, "error", err)
-			writeJSONError(w, http.StatusNotFound, "problem not found")
-			return
-		}
-
-		w.Header().Set("Last-Modified", item.UpdatedAt.UTC().Format(http.TimeFormat))
-		handlerLogger.InfoContext(r.Context(), "problem detail by code succeeded", "event", "problem.detail_by_code.succeeded", "requestId", requestID, "routeCode", routeCode)
-		writeJSON(w, http.StatusOK, mapProblemDetailResponse(item))
-	}
-}
