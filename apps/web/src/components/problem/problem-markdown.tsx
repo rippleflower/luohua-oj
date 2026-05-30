@@ -1,6 +1,11 @@
+import { memo } from "react";
 import ReactMarkdown from "react-markdown";
 
-export function ProblemMarkdown({ content }: { content: string }) {
+export const ProblemMarkdown = memo(function ProblemMarkdown({
+  content,
+}: {
+  content: string;
+}) {
   return (
     <div className="problem-markdown text-sm leading-7 text-slate-700">
       <ReactMarkdown
@@ -31,4 +36,4 @@ export function ProblemMarkdown({ content }: { content: string }) {
       </ReactMarkdown>
     </div>
   );
-}
+});

@@ -1,6 +1,6 @@
 import Editor from "@monaco-editor/react";
-import { languages, type Language } from "@oj/shared";
-import { useEffect, useState } from "react";
+import { languages, type Language, type ProblemDetail } from "@oj/shared";
+import { memo, startTransition, useEffect, useState } from "react";
 
 import { AppShell } from "../../components/layout/app-shell";
 import { ProblemMarkdown } from "../../components/problem/problem-markdown";
@@ -40,7 +40,12 @@ export function ProblemDetailRoute({ slug }: { slug: string }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
-    saveEditorPreferences(preferences);
+    const timer = window.setTimeout(() => {
+      saveEditorPreferences(preferences);
+    }, 180);
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [preferences]);
 
   useEffect(() => {
@@ -51,8 +56,6 @@ export function ProblemDetailRoute({ slug }: { slug: string }) {
 
   const currentUserId = viewer?.id ?? compatUserId.trim();
   const currentTemplate = defaultSourceForLanguage(language);
-  const problemTags = problem ? deriveProblemTags(problem) : [];
-
   function handleLanguageChange(nextLanguage: Language) {
     const nextTemplate = defaultSourceForLanguage(nextLanguage);
     setSource((current) => (current === currentTemplate ? nextTemplate : current));
@@ -111,102 +114,7 @@ export function ProblemDetailRoute({ slug }: { slug: string }) {
         </div>
       ) : (
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.16fr)_minmax(420px,0.94fr)]">
-          <section className="space-y-4">
-            <div className="rounded-3xl border border-slate-200/80 bg-white/88 p-5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-slate-500">
-                    {problem.slug}
-                  </p>
-                  <h2 className="mt-1.5 text-[1.85rem] font-semibold text-slate-950">
-                    {problem.title}
-                  </h2>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <span className="rounded-full bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-700">
-                    {problem.difficulty}
-                  </span>
-                  <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700">
-                    {locale === "zh" ? "时间限制" : "Time limit"} {problem.limitsJson.timeLimitMs}ms
-                  </span>
-                  <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700">
-                    {locale === "zh" ? "内存限制" : "Memory limit"} {problem.limitsJson.memoryLimitKb}KB
-                  </span>
-                </div>
-              </div>
-              {problemTags.length > 0 ? (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {problemTags.map((tag) => (
-                    <a
-                      key={tag}
-                      className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-950 hover:text-slate-950"
-                      href={`/problems?tag=${encodeURIComponent(tag)}`}
-                    >
-                      #{tag}
-                    </a>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-
-            {problem.statementJson.map((section) => (
-              <section
-                key={section.section}
-                className="rounded-3xl border border-slate-200/80 bg-white/85 p-5"
-              >
-                <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-slate-500">
-                  {locale === "zh"
-                    ? (sectionLabel[section.section]?.zh ?? section.section)
-                    : (sectionLabel[section.section]?.en ?? section.section)}
-                </p>
-                <div className="mt-3">
-                  <ProblemMarkdown content={section.content} />
-                </div>
-              </section>
-            ))}
-
-            <section className="rounded-3xl border border-slate-200/80 bg-white/85 p-5">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-slate-500">
-                    {locale === "zh" ? "样例与数据入口" : "Samples & Data"}
-                  </p>
-                  <h3 className="mt-1 text-lg font-semibold text-slate-950">
-                    {locale === "zh"
-                      ? "公开样例目前仍使用对象键占位"
-                      : "Public samples still use object-key placeholders"}
-                  </h3>
-                </div>
-              </div>
-              <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                {problem.samplesJson.map((sample, index) => (
-                  <div
-                    key={`${sample.inputObjectKey}-${index}`}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm"
-                  >
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                      {locale === "zh" ? `样例 ${index + 1}` : `Sample ${index + 1}`}
-                    </p>
-                    <p className="mt-3 text-xs text-slate-500">
-                      {locale === "zh" ? "输入对象" : "Input Object"}
-                    </p>
-                    <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all rounded-xl bg-slate-950 px-3 py-2 text-xs text-slate-100">
-                      {sample.inputObjectKey}
-                    </pre>
-                    <p className="mt-3 text-xs text-slate-500">
-                      {locale === "zh" ? "输出对象" : "Output Object"}
-                    </p>
-                    <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all rounded-xl bg-slate-100 px-3 py-2 text-xs text-slate-700">
-                      {sample.outputObjectKey}
-                    </pre>
-                    <p className="mt-3 text-xs text-slate-500">
-                      {locale === "zh" ? "权重" : "Weight"} {sample.weight}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </section>
-          </section>
+          <ProblemReadPanel locale={locale} problem={problem} />
 
           <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
             <section className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white/92 shadow-[0_16px_50px_rgba(15,23,42,0.06)]">
@@ -366,7 +274,11 @@ export function ProblemDetailRoute({ slug }: { slug: string }) {
                   <Editor
                     height="520px"
                     language={monacoLanguageFor(language)}
-                    onChange={(value) => setSource(value ?? "")}
+                    onChange={(value) => {
+                      startTransition(() => {
+                        setSource(value ?? "");
+                      });
+                    }}
                     options={{
                       automaticLayout: true,
                       fontSize: preferences.fontSize,
@@ -413,31 +325,152 @@ export function ProblemDetailRoute({ slug }: { slug: string }) {
               }
             />
 
-            <section className="rounded-3xl border border-slate-200/80 bg-white/85 p-4">
-              <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-slate-500">
-                {locale === "zh" ? "元数据" : "Metadata"}
-              </p>
-              <div className="mt-3 space-y-2">
-                {Object.entries(problem.metadataJson).map(([key, value]) => (
-                  <div
-                    key={key}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5"
-                  >
-                    <p className="text-xs uppercase tracking-[0.22em] text-slate-400">
-                      {key}
-                    </p>
-                    <p className="mt-1 break-all text-sm font-medium text-slate-900">
-                      {typeof value === "string"
-                        ? value
-                        : JSON.stringify(value)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </section>
+            <ProblemMetadataPanel locale={locale} metadata={problem.metadataJson} />
           </aside>
         </div>
       )}
     </AppShell>
   );
 }
+
+const ProblemReadPanel = memo(function ProblemReadPanel({
+  locale,
+  problem,
+}: {
+  locale: "zh" | "en";
+  problem: ProblemDetail;
+}) {
+  const problemTags = deriveProblemTags(problem);
+
+  return (
+    <section className="space-y-4">
+      <div className="rounded-3xl border border-slate-200/80 bg-white/88 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-slate-500">
+              {problem.slug}
+            </p>
+            <h2 className="mt-1.5 text-[1.85rem] font-semibold text-slate-950">
+              {problem.title}
+            </h2>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span className="rounded-full bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-700">
+              {problem.difficulty}
+            </span>
+            <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700">
+              {locale === "zh" ? "时间限制" : "Time limit"} {problem.limitsJson.timeLimitMs}
+              ms
+            </span>
+            <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700">
+              {locale === "zh" ? "内存限制" : "Memory limit"} {problem.limitsJson.memoryLimitKb}
+              KB
+            </span>
+          </div>
+        </div>
+        {problemTags.length > 0 ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {problemTags.map((tag) => (
+              <a
+                key={tag}
+                className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-950 hover:text-slate-950"
+                href={`/problems?tag=${encodeURIComponent(tag)}`}
+              >
+                #{tag}
+              </a>
+            ))}
+          </div>
+        ) : null}
+      </div>
+
+      {problem.statementJson.map((section) => (
+        <section
+          key={section.section}
+          className="rounded-3xl border border-slate-200/80 bg-white/85 p-5"
+        >
+          <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-slate-500">
+            {locale === "zh"
+              ? (sectionLabel[section.section]?.zh ?? section.section)
+              : (sectionLabel[section.section]?.en ?? section.section)}
+          </p>
+          <div className="mt-3">
+            <ProblemMarkdown content={section.content} />
+          </div>
+        </section>
+      ))}
+
+      <section className="rounded-3xl border border-slate-200/80 bg-white/85 p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-slate-500">
+              {locale === "zh" ? "样例与数据入口" : "Samples & Data"}
+            </p>
+            <h3 className="mt-1 text-lg font-semibold text-slate-950">
+              {locale === "zh"
+                ? "公开样例目前仍使用对象键占位"
+                : "Public samples still use object-key placeholders"}
+            </h3>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          {problem.samplesJson.map((sample, index) => (
+            <div
+              key={`${sample.inputObjectKey}-${index}`}
+              className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm"
+            >
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+                {locale === "zh" ? `样例 ${index + 1}` : `Sample ${index + 1}`}
+              </p>
+              <p className="mt-3 text-xs text-slate-500">
+                {locale === "zh" ? "输入对象" : "Input Object"}
+              </p>
+              <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all rounded-xl bg-slate-950 px-3 py-2 text-xs text-slate-100">
+                {sample.inputObjectKey}
+              </pre>
+              <p className="mt-3 text-xs text-slate-500">
+                {locale === "zh" ? "输出对象" : "Output Object"}
+              </p>
+              <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all rounded-xl bg-slate-100 px-3 py-2 text-xs text-slate-700">
+                {sample.outputObjectKey}
+              </pre>
+              <p className="mt-3 text-xs text-slate-500">
+                {locale === "zh" ? "权重" : "Weight"} {sample.weight}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+    </section>
+  );
+});
+
+const ProblemMetadataPanel = memo(function ProblemMetadataPanel({
+  locale,
+  metadata,
+}: {
+  locale: "zh" | "en";
+  metadata: ProblemDetail["metadataJson"];
+}) {
+  return (
+    <section className="rounded-3xl border border-slate-200/80 bg-white/85 p-4">
+      <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-slate-500">
+        {locale === "zh" ? "元数据" : "Metadata"}
+      </p>
+      <div className="mt-3 space-y-2">
+        {Object.entries(metadata).map(([key, value]) => (
+          <div
+            key={key}
+            className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5"
+          >
+            <p className="text-xs uppercase tracking-[0.22em] text-slate-400">
+              {key}
+            </p>
+            <p className="mt-1 break-all text-sm font-medium text-slate-900">
+              {typeof value === "string" ? value : JSON.stringify(value)}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+});
