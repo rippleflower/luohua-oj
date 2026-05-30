@@ -269,7 +269,9 @@ func testDB(t *testing.T) (context.Context, *pgx.Conn) {
 	t.Cleanup(cancel)
 
 	conn, err := pgx.Connect(ctx, databaseURL)
-	require.NoError(t, err)
+	if err != nil {
+		t.Skipf("skipping integration test: database unavailable at %q: %v", databaseURL, err)
+	}
 	t.Cleanup(func() {
 		_ = conn.Close(context.Background())
 	})

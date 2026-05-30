@@ -6,6 +6,7 @@ import (
 
 	"github.com/example/oj3/apps/api/internal/auth"
 	"github.com/example/oj3/apps/api/internal/contest"
+	"github.com/example/oj3/apps/api/internal/contest_makeup"
 	"github.com/example/oj3/apps/api/internal/problem"
 	"github.com/example/oj3/apps/api/internal/submission"
 	"github.com/go-chi/chi/v5"
@@ -20,11 +21,13 @@ type RouterOptions struct {
 	ProblemAdmin      problem.AdminManager
 	ContestReader     contest.Reader
 	ContestAdmin      contest.AdminManager
+	ContestMakeup     contest_makeup.Reader
 	AuthService       *auth.Service
 	SessionCookieName string
 	CookieSecure      bool
 	SourceRoot        string
 	RedisAddr         string
+	ProblemRouteSalt  string
 	Logger            *slog.Logger
 }
 
@@ -41,7 +44,7 @@ func NewRouter(options ...RouterOptions) http.Handler {
 
 	r.Get("/health", healthHandler)
 	if opts.AuthService != nil {
-		mountAuthRoutes(r, authHandlerOptions{
+		authOpts := authHandlerOptions{
 			service:           opts.AuthService,
 			sessionCookieName: opts.SessionCookieName,
 			cookieSecure:      opts.CookieSecure,
@@ -50,21 +53,14 @@ func NewRouter(options ...RouterOptions) http.Handler {
 			problemAdmin:      opts.ProblemAdmin,
 			contestAdmin:      opts.ContestAdmin,
 			submissionAdmin:   opts.SubmissionAdmin,
-		})
-		mountAdminRoutes(r, authHandlerOptions{
-			service:           opts.AuthService,
-			sessionCookieName: opts.SessionCookieName,
-			cookieSecure:      opts.CookieSecure,
-			sourceRoot:        opts.SourceRoot,
-			redisAddr:         opts.RedisAddr,
-			problemAdmin:      opts.ProblemAdmin,
-			contestAdmin:      opts.ContestAdmin,
-			submissionAdmin:   opts.SubmissionAdmin,
-		})
+			contestMakeup:     opts.ContestMakeup,
+		}
+		mountAuthRoutes(r, authOpts)
+		mountAdminRoutes(r, authOpts)
+		mountContestMakeupRoutes(r, authOpts)
 	}
 	if opts.ProblemReader != nil {
-		r.Get("/problems", listProblemsHandler(opts.ProblemReader, opts.Logger))
-		r.Get("/problems/{slug}", getProblemHandler(opts.ProblemReader, opts.Logger))
+		mountProblemRoutes(r, opts.ProblemReader, opts.Logger)
 	}
 	if opts.ContestReader != nil {
 		r.Get("/contests", listContestsHandler(opts.ContestReader, opts.Logger))

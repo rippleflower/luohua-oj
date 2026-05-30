@@ -3,16 +3,15 @@ package http
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/example/oj3/apps/api/internal/auth"
 	"github.com/example/oj3/apps/api/internal/contest"
+	"github.com/example/oj3/apps/api/internal/contest_makeup"
 	"github.com/example/oj3/apps/api/internal/problem"
 	"github.com/example/oj3/apps/api/internal/submission"
-	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )
 
@@ -25,38 +24,13 @@ type authHandlerOptions struct {
 	problemAdmin      problem.AdminManager
 	contestAdmin      contest.AdminManager
 	submissionAdmin   submission.AdminManager
-}
-
-func mountAuthRoutes(r chi.Router, opts authHandlerOptions) {
-	r.Route("/auth", func(r chi.Router) {
-		r.Post("/register", registerHandler(opts))
-		r.Post("/login", loginHandler(opts))
-		r.With(requireAuthenticated(opts.service, opts.sessionCookieName)).Get("/me", authMeHandler())
-		r.With(requireAuthenticated(opts.service, opts.sessionCookieName), requireCSRF).Post("/logout", logoutHandler(opts))
-		r.With(requireAuthenticated(opts.service, opts.sessionCookieName), requireCSRF).Post("/password/change", changePasswordHandler(opts))
-		r.With(requireAuthenticated(opts.service, opts.sessionCookieName)).Get("/sessions", listSessionsHandler(opts))
-		r.With(requireAuthenticated(opts.service, opts.sessionCookieName), requireCSRF).Post("/sessions/revoke", revokeSessionHandler(opts))
-	})
-
-	r.Route("/me", func(r chi.Router) {
-		r.Use(requireAuthenticated(opts.service, opts.sessionCookieName))
-		r.Get("/summary", meSummaryHandler(opts))
-		r.Get("/settings", meSettingsHandler(opts))
-		r.With(requireCSRF).Patch("/profile", updateProfileHandler(opts))
-		r.With(requireCSRF).Patch("/preferences", updatePreferencesHandler(opts))
-	})
+	contestMakeup     contest_makeup.Reader
 }
 
 func registerHandler(opts authHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var request struct {
-			Email           string `json:"email"`
-			Username        string `json:"username"`
-			Password        string `json:"password"`
-			ConfirmPassword string `json:"confirmPassword"`
-			DisplayName     string `json:"displayName"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		request, err := decodeAuthRegisterRequest(r)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid json body")
 			return
 		}
@@ -84,11 +58,8 @@ func registerHandler(opts authHandlerOptions) http.HandlerFunc {
 
 func loginHandler(opts authHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var request struct {
-			Identifier string `json:"identifier"`
-			Password   string `json:"password"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		request, err := decodeAuthLoginRequest(r)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid json body")
 			return
 		}
@@ -138,12 +109,8 @@ func changePasswordHandler(opts authHandlerOptions) http.HandlerFunc {
 			writeJSONError(w, http.StatusUnauthorized, "authentication required")
 			return
 		}
-		var request struct {
-			CurrentPassword string `json:"currentPassword"`
-			NewPassword     string `json:"newPassword"`
-			ConfirmPassword string `json:"confirmPassword"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		request, err := decodeAuthChangePasswordRequest(r)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid json body")
 			return
 		}
@@ -187,10 +154,8 @@ func revokeSessionHandler(opts authHandlerOptions) http.HandlerFunc {
 			writeJSONError(w, http.StatusUnauthorized, "authentication required")
 			return
 		}
-		var request struct {
-			SessionID string `json:"sessionId"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		request, err := decodeAuthRevokeSessionRequest(r)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid json body")
 			return
 		}
@@ -268,12 +233,8 @@ func meSettingsHandler(opts authHandlerOptions) http.HandlerFunc {
 func updateProfileHandler(opts authHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user, _ := currentUser(r.Context())
-		var request struct {
-			DisplayName string `json:"displayName"`
-			Bio         string `json:"bio"`
-			AvatarURL   string `json:"avatarUrl"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		request, err := decodeAuthUpdateProfileRequest(r)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid json body")
 			return
 		}
@@ -295,11 +256,8 @@ func updateProfileHandler(opts authHandlerOptions) http.HandlerFunc {
 func updatePreferencesHandler(opts authHandlerOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user, _ := currentUser(r.Context())
-		var request struct {
-			PreferredLocale   string `json:"preferredLocale"`
-			PreferredLanguage string `json:"preferredLanguage"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		request, err := decodeAuthUpdatePreferencesRequest(r)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid json body")
 			return
 		}
@@ -349,62 +307,6 @@ func randomCookieValue() string {
 		return ""
 	}
 	return base64.RawURLEncoding.EncodeToString(buf)
-}
-
-func authUserResponse(user auth.User) map[string]any {
-	permissions := make([]string, 0, len(user.Permissions))
-	for _, permission := range user.Permissions {
-		permissions = append(permissions, string(permission))
-	}
-	return map[string]any{
-		"id":          user.ID.String(),
-		"email":       user.Email,
-		"username":    user.Username,
-		"role":        user.Role,
-		"permissions": permissions,
-		"displayName": user.DisplayName,
-	}
-}
-
-func sessionsResponse(sessions []auth.Session) []map[string]any {
-	response := make([]map[string]any, 0, len(sessions))
-	for _, session := range sessions {
-		response = append(response, map[string]any{
-			"id":         session.ID.String(),
-			"current":    session.Current,
-			"ip":         session.IP,
-			"userAgent":  session.UserAgent,
-			"expiresAt":  session.ExpiresAt.UTC().Format(time.RFC3339),
-			"lastSeenAt": formatNullableTime(session.LastSeenAt),
-			"createdAt":  session.CreatedAt.UTC().Format(time.RFC3339),
-		})
-	}
-	return response
-}
-
-func meSettingsResponse(settings auth.MeSettings) map[string]any {
-	return map[string]any{
-		"user": authUserResponse(settings.User),
-		"profile": map[string]any{
-			"email":       settings.Email,
-			"username":    settings.Username,
-			"displayName": settings.DisplayName,
-			"bio":         settings.Bio,
-			"avatarUrl":   settings.AvatarURL,
-		},
-		"preferences": map[string]any{
-			"preferredLocale":   settings.PreferredLocale,
-			"preferredLanguage": settings.PreferredLanguage,
-		},
-		"sessions": sessionsResponse(settings.Sessions),
-	}
-}
-
-func formatNullableTime(value *time.Time) any {
-	if value == nil {
-		return nil
-	}
-	return value.UTC().Format(time.RFC3339)
 }
 
 func requestIP(r *http.Request) string {
