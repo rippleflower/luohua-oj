@@ -20,13 +20,13 @@ type RunSpec struct {
 
 func (r Runner) BuildArgs(spec RunSpec) []string {
 	timeLimitSeconds := ceilMillisToSeconds(spec.TimeLimitMs)
+	memoryLimitMB := ceilKilobytesToMegabytes(spec.MemoryLimitKB)
 	args := []string{
-		"--disable_clone_newnet",
 		"--quiet",
 		"--time_limit",
 		strconv.Itoa(timeLimitSeconds),
 		"--rlimit_as",
-		strconv.Itoa(spec.MemoryLimitKB),
+		strconv.Itoa(memoryLimitMB),
 		"--cwd",
 		spec.Workdir,
 		"--",
@@ -50,4 +50,11 @@ func ceilMillisToSeconds(ms int) int {
 		return 1
 	}
 	return (ms + 999) / 1000
+}
+
+func ceilKilobytesToMegabytes(kb int) int {
+	if kb <= 0 {
+		return 1
+	}
+	return (kb + 1023) / 1024
 }

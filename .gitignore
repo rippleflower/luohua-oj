@@ -11,3 +11,4 @@ tmp/
 **/._*
 apps/web/test-results/
 apps/web/tsconfig.tsbuildinfo
+apps/admin-web/tsconfig.tsbuildinfo
