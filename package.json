@@ -7,8 +7,12 @@
     "build:web": "pnpm --filter @oj/web build",
     "lint:web": "pnpm --filter @oj/web lint",
     "test:web": "pnpm --filter @oj/web test",
+    "test:shared": "pnpm --filter @oj/shared test",
     "test:go": "go test ./apps/api/... ./apps/judge-worker/...",
-    "test": "pnpm test:web && pnpm test:go"
+    "check:repo-hygiene": "bash -c 'if git ls-files | grep -E \"(^|/)\\\\._|(^|/)\\\\.DS_Store$\" > /dev/null; then echo \"Tracked forbidden macOS metadata files found:\"; git ls-files | grep -E \"(^|/)\\\\._|(^|/)\\\\.DS_Store$\"; exit 1; fi'",
+    "ci:check": "bash ./scripts/ci-check.sh",
+    "dev:check": "pnpm ci:check",
+    "test": "pnpm ci:check"
   },
   "devDependencies": {
     "typescript": "^5.6.0",

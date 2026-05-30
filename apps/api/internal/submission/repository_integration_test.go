@@ -23,7 +23,9 @@ func TestSQLRepositoryCreateSubmission(t *testing.T) {
 	defer cancel()
 
 	conn, err := pgx.Connect(ctx, databaseURL)
-	require.NoError(t, err)
+	if err != nil {
+		t.Skipf("skipping integration test: database unavailable at %q: %v", databaseURL, err)
+	}
 	defer conn.Close(context.Background())
 
 	queries := db.New(conn)
