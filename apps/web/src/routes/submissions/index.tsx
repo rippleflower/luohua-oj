@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useDeferredValue, useEffect, useRef, useState, type FormEvent } from "react";
 
 import { AppShell } from "../../components/layout/app-shell";
 import { SubmissionForm } from "../../components/submission/submission-form";
@@ -41,17 +41,31 @@ export function SubmissionsRoute() {
     };
   });
   const [historyUsername, setHistoryUsername] = useState(env.submissionsUsername);
+  const deferredHistoryUsername = useDeferredValue(historyUsername);
   const [historyPage, setHistoryPage] = useState(1);
   const mutation = useCreateSubmission();
   const apiMode = env.apiBaseUrl !== "" ? "remote" : "fallback";
+  const fieldLogTimerRef = useRef<Partial<Record<NonNullable<SubmissionLogContext["field"]>, number>>>({});
+  const historyUsernameQuery = deferredHistoryUsername.trim();
 
   useEffect(() => {
     logSubmissionPageViewed(requestId, apiMode, form);
   }, [requestId]);
 
+  useEffect(
+    () => () => {
+      for (const timer of Object.values(fieldLogTimerRef.current)) {
+        if (timer !== undefined) {
+          window.clearTimeout(timer);
+        }
+      }
+    },
+    [],
+  );
+
   useEffect(() => {
     const syncHistory = () => {
-      if (apiMode === "fallback" || historyUsername.trim() === "") {
+      if (apiMode === "fallback" || historyUsernameQuery === "") {
         const items = listSubmissionHistory();
         setHistory({
           items,
@@ -66,19 +80,19 @@ export function SubmissionsRoute() {
     return () => {
       window.removeEventListener("submissions:history-updated", syncHistory);
     };
-  }, [apiMode, historyUsername]);
+  }, [apiMode, historyUsernameQuery]);
 
   useEffect(() => {
     let cancelled = false;
 
-    void listSubmissions(historyUsername, { page: historyPage, pageSize: historyPageSize })
+    void listSubmissions(historyUsernameQuery, { page: historyPage, pageSize: historyPageSize })
       .then((next) => {
         if (!cancelled) {
           setHistory(next);
         }
       })
       .catch(() => {
-        if (!cancelled && (apiMode === "fallback" || historyUsername.trim() === "")) {
+        if (!cancelled && (apiMode === "fallback" || historyUsernameQuery === "")) {
           const items = listSubmissionHistory();
           setHistory({
             items,
@@ -92,7 +106,7 @@ export function SubmissionsRoute() {
     return () => {
       cancelled = true;
     };
-  }, [apiMode, historyPage, historyUsername, mutation.data]);
+  }, [apiMode, historyPage, historyUsernameQuery, mutation.data]);
 
   function handleHistoryUsernameChange(value: string) {
     setHistoryUsername(value);
@@ -106,6 +120,16 @@ export function SubmissionsRoute() {
         : { ...form, [field]: value };
 
     setForm(nextForm);
+    if (field === "source") {
+      const existingTimer = fieldLogTimerRef.current[field];
+      if (existingTimer !== undefined) {
+        window.clearTimeout(existingTimer);
+      }
+      fieldLogTimerRef.current[field] = window.setTimeout(() => {
+        logSubmissionFieldChanged(requestId, apiMode, nextForm, field);
+      }, 250);
+      return;
+    }
     logSubmissionFieldChanged(requestId, apiMode, nextForm, field);
   }
 
@@ -149,15 +173,15 @@ export function SubmissionsRoute() {
         <div className="space-y-6">
           <SubmissionForm form={form} isSubmitting={mutation.isPending} onFieldChange={handleFieldChange} onSubmit={handleSubmit} />
           <SubmissionHistoryList
-            onPageChange={apiMode === "remote" && historyUsername.trim() !== "" ? setHistoryPage : undefined}
+            onPageChange={apiMode === "remote" && historyUsernameQuery !== "" ? setHistoryPage : undefined}
             onUsernameChange={handleHistoryUsernameChange}
             page={history.page}
             pageSize={history.pageSize}
             sourceLabel={
-              apiMode === "remote" && historyUsername.trim() !== ""
+              apiMode === "remote" && historyUsernameQuery !== ""
                 ? locale === "zh"
-                  ? `显示用户 ${historyUsername.trim()} 的远端提交`
-                  : `Showing remote submissions for ${historyUsername.trim()}`
+                  ? `显示用户 ${historyUsernameQuery} 的远端提交`
+                  : `Showing remote submissions for ${historyUsernameQuery}`
                 : locale === "zh"
                   ? "显示本地提交记录"
                   : "Showing local submission history"
